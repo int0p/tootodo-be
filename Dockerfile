@@ -20,4 +20,4 @@ COPY --from=builder /app/target/release/tootodo-be /app/tootodo-be
 # Set the DATABASE_URL environment variable
  ENV DATABASE_URL=postgres://koyeb-adm:J7pBgCtqy9Ve@ep-ancient-union-a1thb6qd.ap-southeast-1.pg.koyeb.app/koyebdb
 
-CMD ["/app/tootodo"]
+CMD ["/app/tootodo-be"]
