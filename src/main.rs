@@ -12,7 +12,7 @@ use axum::http::{
 };
 use config::Config;
 use dotenv::dotenv;
-use redis::Client;
+// use redis::Client;
 use route::create_router;
 use sqlx::postgres::PgPoolOptions;
 use sqlx::{Pool, Postgres};
@@ -66,7 +66,7 @@ impl Modify for SecurityAddon {
 pub struct AppState {
     pub db: Pool<Postgres>,
     pub env: Config,
-    pub redis_client: Client,
+    // pub redis_client: Client,
 }
 
 #[tokio::main]
@@ -96,19 +96,19 @@ async fn main() {
         }
     };
 
-    let redis_client = match Client::open(config.redis_url.to_owned()) {
-        Ok(client) => {
-            println!("✅Connection to the redis is successful!");
-            client
-        }
-        Err(e) => {
-            println!("🔥 Error connecting to Redis: {}", e);
-            std::process::exit(1);
-        }
-    };
+    // let redis_client = match Client::open(config.redis_url.to_owned()) {
+    //     Ok(client) => {
+    //         println!("✅Connection to the redis is successful!");
+    //         client
+    //     }
+    //     Err(e) => {
+    //         println!("🔥 Error connecting to Redis: {}", e);
+    //         std::process::exit(1);
+    //     }
+    // };
 
     let cors = CorsLayer::new()
-        .allow_origin("http://localhost:5173".parse::<HeaderValue>().unwrap())
+        .allow_origin("https://tootodo.life".parse::<HeaderValue>().unwrap())
         .allow_methods([Method::GET, Method::POST, Method::PATCH, Method::DELETE])
         .allow_credentials(true)
         .allow_headers([AUTHORIZATION, ACCEPT, CONTENT_TYPE]);
@@ -116,7 +116,7 @@ async fn main() {
     let app = create_router(Arc::new(AppState {
         db: pool.clone(),
         env: config.clone(),
-        redis_client: redis_client.clone(),
+        // redis_client: redis_client.clone(),
     }))
     .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
     .merge(RapiDoc::new("/api-docs/openapi.json").path("/rapidoc"))

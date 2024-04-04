@@ -1,0 +1,11 @@
+api.tootodo.life {
+    reverse_proxy api-tootodo:8000 {
+        header_down Strict-Transport-Security max-age=31536000;
+    }
+}
+
+pgadmin.tootodo.life {
+    reverse_proxy pgadmin:80 {
+        header_down Strict-Transport-Security max-age=31536000;
+    }
+}
