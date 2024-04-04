@@ -151,6 +151,12 @@ jobs:
       - name: Deploy to VPS
         run: |
           ssh -o StrictHostKeyChecking=no seungye@${{ secrets.VPS_IP }} "
+           export POSTGRES_USER=${{secrets.POSTGRES_USER}}
+            export POSTGRES_PASSWORD=${{secrets.POSTGRES_PASSWORD}}
+            export POSTGRES_DB=${{secrets.POSTGRES_DB}}
+            export PGADMIN_DEFAULT_EMAIL=${{secrets.PGADMIN_DEFAULT_EMAIL}}
+            export PGADMIN_DEFAULT_PASSWORD=${{secrets.PGADMIN_DEFAULT_PASSWORD}}
+            export PGADMIN_LISTEN_PORT=${{secrets.PGADMIN_LISTEN_PORT}}
             docker-compose down
             docker-compose pull
             docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
