@@ -7,8 +7,6 @@ services:
     restart: unless-stopped
     # environment:
     #   DATABASE_URL: ${DATABASE_URL}
-    #   JWT_SECRET_KEY: ${JWT_SECRET_KEY}
-    #   JWT_MAXAGE: ${JWT_MAXAGE}
     env_file:
       - .env
     build:

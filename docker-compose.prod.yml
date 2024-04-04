@@ -13,7 +13,7 @@ services:
       - caddy_data:/data
       - caddy_config:/config
     networks:
-      - rust_app_network
+      - tootodo_network
 
 volumes:
   caddy_data:
