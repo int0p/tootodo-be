@@ -81,7 +81,7 @@ jobs:
           echo DATABASE_CONTAINER_URL=${{secrets.DATABASE_CONTAINER_URL}} >> .env
           echo CLIENT_ORIGIN=${{secrets.CLIENT_ORIGIN}} >> .env
           echo ACCESS_TOKEN_PRIVATE_KEY=${{secrets.ACCESS_TOKEN_PRIVATE_KEY}} >> .env
-          echo REFRESH_TOKEN_PRIVATE_KEY=${{secrets.REFRESH
+          echo REFRESH_TOKEN_PRIVATE_KEY=${{secrets.REFRESH_TOKEN_PRIVATE_KEY}} >> .env
           echo ACCESS_TOKEN_PUBLIC_KEY=${{secrets.ACCESS_TOKEN_PUBLIC_KEY}} >> .env
           echo REFRESH_TOKEN_PUBLIC_KEY=${{secrets.REFRESH_TOKEN_PUBLIC_KEY}} >> .env
           echo ACCESS_TOKEN_EXPIRED_IN=${{secrets.ACCESS_TOKEN_EXPIRED_IN}} >> .env
@@ -137,7 +137,7 @@ jobs:
           echo DATABASE_CONTAINER_URL=${{secrets.DATABASE_CONTAINER_URL}} >> .env
           echo CLIENT_ORIGIN=${{secrets.CLIENT_ORIGIN}} >> .env
           echo ACCESS_TOKEN_PRIVATE_KEY=${{secrets.ACCESS_TOKEN_PRIVATE_KEY}} >> .env
-          echo REFRESH_TOKEN_PRIVATE_KEY=${{secrets.REFRESH
+          echo REFRESH_TOKEN_PRIVATE_KEY=${{secrets.REFRESH_TOKEN_PRIVATE_KEY}} >> .env
           echo ACCESS_TOKEN_PUBLIC_KEY=${{secrets.ACCESS_TOKEN_PUBLIC_KEY}} >> .env
           echo REFRESH_TOKEN_PUBLIC_KEY=${{secrets.REFRESH_TOKEN_PUBLIC_KEY}} >> .env
           echo ACCESS_TOKEN_EXPIRED_IN=${{secrets.ACCESS_TOKEN_EXPIRED_IN}} >> .env
