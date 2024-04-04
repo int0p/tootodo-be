@@ -79,6 +79,18 @@ jobs:
           echo POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }} >> .env
           echo POSTGRES_DB=${{ secrets.POSTGRES_DB }} >> .env
           echo DATABASE_CONTAINER_URL=${{secrets.DATABASE_CONTAINER_URL}} >> .env
+          echo CLIENT_ORIGIN=${{secrets.CLIENT_ORIGIN}} >> .env
+          echo ACCESS_TOKEN_PRIVATE_KEY=${{secrets.ACCESS_TOKEN_PRIVATE_KEY}} >> .env
+          echo REFRESH_TOKEN_PRIVATE_KEY=${{secrets.REFRESH
+          echo ACCESS_TOKEN_PUBLIC_KEY=${{secrets.ACCESS_TOKEN_PUBLIC_KEY}} >> .env
+          echo REFRESH_TOKEN_PUBLIC_KEY=${{secrets.REFRESH_TOKEN_PUBLIC_KEY}} >> .env
+          echo ACCESS_TOKEN_EXPIRED_IN=${{secrets.ACCESS_TOKEN_EXPIRED_IN}} >> .env
+          echo REFRESH_TOKEN_EXPIRED_IN=${{secrets.REFRESH_TOKEN_EXPIRED_IN}} >> .env
+          echo ACCESS_TOKEN_MAXAGE=${{secrets.ACCESS_TOKEN_MAXAGE}} >> .env
+          echo REFRESH_TOKEN_MAXAGE=${{secrets.REFRESH_TOKEN_MAXAGE}} >> .env
+          echo Google_OAuth_Client_ID=${{secrets.Google_OAuth_Client_ID}} >> .env
+          echo Google_OAuth_Client_Secret=${{secrets.Google_OAuth_Client_Secret}} >> .env
+          echo GOOGLE_OAUTH_REDIRECT_URL=${{secrets.GOOGLE_OAUTH_REDIRECT_URL}} >> .env          
 
       - name: Build and push Docker images
         uses: docker/bake-action@v4.2.0
@@ -87,13 +99,10 @@ jobs:
           set: |
             *.cache-from=type=gha
             *.cache-to=type=gha,mode=max
-          files: | 
-            docker-compose.yml
-            docker-compose.dev.yml
 
   deploy:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: debian:bookworm-slim
 
     steps:
       - name: Checkout code
@@ -117,6 +126,28 @@ jobs:
       - name: Copy docker-compose.prod.yml to vps_server
         run: sshpass -v -p '${{ secrets.VPS_PASSWORD }}' scp -o StrictHostKeyChecking=no docker-compose.prod.yml root@${{ secrets.VPS_IP }}:~
 
+      - name: Create .env file
+        run: |
+          echo PGADMIN_DEFAULT_PASSWORD=${{ secrets.PGADMIN_DEFAULT_PASSWORD }} >> .env
+          echo PGADMIN_LISTEN_PORT=${{ secrets.PGADMIN_LISTEN_PORT }} >> .env
+          echo PGADMIN_DEFAULT_EMAIL=${{ secrets.PGADMIN_DEFAULT_EMAIL }} >> .env
+          echo POSTGRES_USER=${{ secrets.POSTGRES_USER }} >> .env
+          echo POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }} >> .env
+          echo POSTGRES_DB=${{ secrets.POSTGRES_DB }} >> .env
+          echo DATABASE_CONTAINER_URL=${{secrets.DATABASE_CONTAINER_URL}} >> .env
+          echo CLIENT_ORIGIN=${{secrets.CLIENT_ORIGIN}} >> .env
+          echo ACCESS_TOKEN_PRIVATE_KEY=${{secrets.ACCESS_TOKEN_PRIVATE_KEY}} >> .env
+          echo REFRESH_TOKEN_PRIVATE_KEY=${{secrets.REFRESH
+          echo ACCESS_TOKEN_PUBLIC_KEY=${{secrets.ACCESS_TOKEN_PUBLIC_KEY}} >> .env
+          echo REFRESH_TOKEN_PUBLIC_KEY=${{secrets.REFRESH_TOKEN_PUBLIC_KEY}} >> .env
+          echo ACCESS_TOKEN_EXPIRED_IN=${{secrets.ACCESS_TOKEN_EXPIRED_IN}} >> .env
+          echo REFRESH_TOKEN_EXPIRED_IN=${{secrets.REFRESH_TOKEN_EXPIRED_IN}} >> .env
+          echo ACCESS_TOKEN_MAXAGE=${{secrets.ACCESS_TOKEN_MAXAGE}} >> .env
+          echo REFRESH_TOKEN_MAXAGE=${{secrets.REFRESH_TOKEN_MAXAGE}} >> .env
+          echo Google_OAuth_Client_ID=${{secrets.Google_OAuth_Client_ID}} >> .env
+          echo Google_OAuth_Client_Secret=${{secrets.Google_OAuth_Client_Secret}} >> .env
+          echo GOOGLE_OAUTH_REDIRECT_URL=${{secrets.GOOGLE_OAUTH_REDIRECT_URL}} >> .env          
+      
       - name: Deploy
         uses: appleboy/ssh-action@master
         with:
@@ -125,26 +156,7 @@ jobs:
           password: ${{ secrets.VPS_PASSWORD }}
           script: |
             cd ~
-            export DATABASE_URL=${{ secrets.DATABASE_URL }}
-            export POSTGRES_USER=${{secrets.POSTGRES_USER}}
-            export POSTGRES_PASSWORD=${{secrets.POSTGRES_PASSWORD}}
-            export POSTGRES_DB=${{secrets.POSTGRES_DB}}
-            export PGADMIN_DEFAULT_EMAIL=${{secrets.PGADMIN_DEFAULT_EMAIL}}
-            export PGADMIN_DEFAULT_PASSWORD=${{secrets.PGADMIN_DEFAULT_PASSWORD}}
-            export PGADMIN_LISTEN_PORT=${{secrets.PGADMIN_LISTEN_PORT}}
-            export CLIENT_ORIGIN=${{secrets.CLIENT_ORIGIN}}
-            export ACCESS_TOKEN_PRIVATE_KEY=${{secrets.ACCESS_TOKEN_PRIVATE_KEY}}
-            export REFRESH_TOKEN_PRIVATE_KEY=${{secrets.REFRESH_TOKEN_PRIVATE_KEY}}
-            export ACCESS_TOKEN_PUBLIC_KEY=${{secrets.ACCESS_TOKEN_PUBLIC_KEY}}
-            export REFRESH_TOKEN_PUBLIC_KEY=${{secrets.REFRESH_TOKEN_PUBLIC_KEY}}
-            export ACCESS_TOKEN_EXPIRED_IN=${{secrets.ACCESS_TOKEN_EXPIRED_IN}}
-            export REFRESH_TOKEN_EXPIRED_IN=${{secrets.REFRESH_TOKEN_EXPIRED_IN}}
-            export ACCESS_TOKEN_MAXAGE=${{secrets.ACCESS_TOKEN_MAXAGE}}
-            export REFRESH_TOKEN_MAXAGE=${{secrets.REFRESH_TOKEN_MAXAGE}}
-            export Google_OAuth_Client_ID=${{secrets.Google_OAuth_Client_ID}}
-            export Google_OAuth_Client_Secret=${{secrets.Google_OAuth_Client_Secret}}
-            export GOOGLE_OAUTH_REDIRECT_URL=${{secrets.GOOGLE_OAUTH_REDIRECT_URL}}
-
+            
             docker-compose down
             docker-compose pull
             docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
