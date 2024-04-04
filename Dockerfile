@@ -18,7 +18,7 @@ COPY . .
 RUN cargo build --release --locked
 
 # Production Stage
-FROM debian:buster-slim AS runner
+FROM ubuntu-latest AS runner
 ARG APP=/usr/src/app
 ENV TZ=Etc/UTC APP_USER=appuser
 
