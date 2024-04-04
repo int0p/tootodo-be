@@ -70,24 +70,16 @@ jobs:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
 
-      - name: Create .env file
-        run: |
-          echo PGADMIN_DEFAULT_PASSWORD=${{ secrets.PGADMIN_DEFAULT_PASSWORD }} >> .env
-          echo PGADMIN_LISTEN_PORT=${{ secrets.PGADMIN_LISTEN_PORT }} >> .env
-          echo PGADMIN_DEFAULT_EMAIL=${{ secrets.PGADMIN_DEFAULT_EMAIL }} >> .env
-          echo POSTGRES_USER=${{ secrets.POSTGRES_USER }} >> .env
-          echo POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }} >> .env
-          echo POSTGRES_DB=${{ secrets.POSTGRES_DB }} >> .env
-
       - name: Build and push Docker images
-        uses: docker/bake-action@v2.3.0
+        uses: docker/bake-action@v4.2.0
         with:
           push: true
           set: |
             *.cache-from=type=gha
             *.cache-to=type=gha,mode=max
           files: | 
-            .env
+            docker-compose.yml
+            docker-compose.dev.yml
 
   deploy:
     needs: build
