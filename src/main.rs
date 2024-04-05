@@ -109,6 +109,7 @@ async fn main() {
 
     let cors = CorsLayer::new()
         .allow_origin("https://tootodo.life/*".parse::<HeaderValue>().unwrap())
+        .allow_origin("http://localhost:8000")
         .allow_methods([Method::GET, Method::POST, Method::PATCH, Method::DELETE])
         .allow_credentials(true)
         .allow_headers([AUTHORIZATION, ACCEPT, CONTENT_TYPE]);
@@ -118,7 +119,7 @@ async fn main() {
         env: config.clone(),
         // redis_client: redis_client.clone(),
     }))
-    .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
+    .merge(SwaggerUi::new("/{_:.*}").url("/api-docs/openapi.json", ApiDoc::openapi()))
     .merge(RapiDoc::new("/api-docs/openapi.json").path("/rapidoc"))
     .layer(cors);
 
