@@ -95,7 +95,7 @@ async fn main() {
             std::process::exit(1);
         }
     };
-    
+
     match sqlx::migrate!("./migrations").run(&pool).await {
         Ok(_) => println!("Migrations executed successfully."),
         Err(e) => eprintln!("Error executing migrations: {}", e),
