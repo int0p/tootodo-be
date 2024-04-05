@@ -102,7 +102,6 @@ jobs:
           scp -o StrictHostKeyChecking=no Caddyfile seungye@${{ secrets.VPS_IP }}:~
           scp -o StrictHostKeyChecking=no docker-compose.yml seungye@${{ secrets.VPS_IP }}:~
           scp -o StrictHostKeyChecking=no docker-compose.prod.yml seungye@${{ secrets.VPS_IP }}:~
-          scp -o StrictHostKeyChecking=no .env seungye@${{ secrets.VPS_IP }}:~
 
       - name: Deploy to VPS
         run: |
