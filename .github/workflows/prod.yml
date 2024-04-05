@@ -128,5 +128,8 @@ jobs:
             docker-compose down
             docker-compose pull
             docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
-            docker-compose -f docker-compose.yml -f docker-compose.prod.yml exec -T api-tootodo sqlx migrate run   
+          docker-compose -f docker-compose.yml -f docker-compose.prod.yml exec -T api-tootodo \
+            sh -c 'cargo install --version=\"~0.6\" sqlx-cli --no-default-features --features rustls,postgres'
+          docker-compose -f docker-compose.yml -f docker-compose.prod.yml exec -T api-tootodo \
+            sh -c 'export DATABASE_URL=$DATABASE_URL && sqlx migrate run'
           "
