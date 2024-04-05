@@ -33,8 +33,6 @@ jobs:
     PGADMIN_DEFAULT_PASSWORD: ${{ secrets.PGADMIN_DEFAULT_PASSWORD }}
     PGADMIN_LISTEN_PORT: ${{ secrets.PGADMIN_LISTEN_PORT }}
   
-  services:
-    # ...
     services:
       postgres:
         image: postgres:15.3-alpine
