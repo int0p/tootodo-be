@@ -5,6 +5,8 @@ services:
     image: seungyeah/api-tootodo
     container_name: api-tootodo
     restart: unless-stopped
+    depends_on:
+      - postgres
     environment:
       DATABASE_URL: ${DATABASE_CONTAINER_URL}
       CLIENT_ORIGIN: ${CLIENT_ORIGIN}
