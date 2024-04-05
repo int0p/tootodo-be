@@ -53,9 +53,6 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
-          until sqlx database setup; do
-            sleep 1
-          done
           sqlx migrate run
 
       - name: Generate SQLX Prepared Queries
