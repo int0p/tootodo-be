@@ -122,8 +122,6 @@ jobs:
           scp -o StrictHostKeyChecking=no Caddyfile seungye@${{ secrets.VPS_IP }}:~
           scp -o StrictHostKeyChecking=no docker-compose.yml seungye@${{ secrets.VPS_IP }}:~
           scp -o StrictHostKeyChecking=no docker-compose.prod.yml seungye@${{ secrets.VPS_IP }}:~
-          scp -o StrictHostKeyChecking=no Dockerfile seungye@${{ secrets.VPS_IP }}:~
-
       
       - name: Install Rust
         uses: actions-rs/toolchain@v1
@@ -159,4 +157,5 @@ jobs:
             docker-compose down
             docker-compose pull
             docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+            docker-compose exec -T api-tootodo sqlx migrate run
           "
