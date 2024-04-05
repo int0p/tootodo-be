@@ -49,6 +49,12 @@ jobs:
       - name: Install SQLx CLI
         run: cargo install sqlx-cli --no-default-features --features native-tls,postgres
 
+      - name: Wait for PostgreSQL
+        run: |
+          while ! nc -z postgres 5432; do 
+            sleep 1
+          done
+          
       - name: Run SQLx Database Migrations
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
