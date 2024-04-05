@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use argon2::{password_hash::SaltString, Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
 use axum::{
-    debug_handler,
     extract::{Query, State},
     http::{header, HeaderMap, Response, StatusCode},
     response::IntoResponse,
@@ -18,7 +17,7 @@ use tracing::info;
 
 use crate::{
     error::Error,
-    model::{LoginUserSchema, RegisterUserSchema, User},
+    model::{LoginUserSchema, RegisterUserSchema},
     utils::auth::{
         append_cookies_to_headers, auth_first, filter_user_record, generate_token,
         JWTAuthMiddleware,
