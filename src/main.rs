@@ -95,7 +95,12 @@ async fn main() {
             std::process::exit(1);
         }
     };
-
+    
+    match sqlx::migrate!("./migrations").run(&pool).await {
+        Ok(_) => println!("Migrations executed successfully."),
+        Err(e) => eprintln!("Error executing migrations: {}", e),
+    };
+    
     // let redis_client = match Client::open(config.redis_url.to_owned()) {
     //     Ok(client) => {
     //         println!("✅Connection to the redis is successful!");
