@@ -6,8 +6,8 @@ on:
       - master
 
 env:
-  SQLX_OFFLINE: true
-  DATABASE_URL: ${{secrets.DATABASE_TEST_URI}}
+  # SQLX_OFFLINE: true
+  DATABASE_URL: ${{secrets.DATABASE_URI}}
 
 jobs:
   build:
@@ -53,8 +53,8 @@ jobs:
       - name: Run SQLx Database Migrations
         run: sqlx migrate run
 
-      - name: Generate SQLX Prepared Queries
-        run: cargo sqlx prepare
+      # - name: Generate SQLX Prepared Queries
+      #   run: cargo sqlx prepare
 
       - name: Build and test code
         run: |
