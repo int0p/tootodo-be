@@ -122,6 +122,15 @@ jobs:
           scp -o StrictHostKeyChecking=no Caddyfile seungye@${{ secrets.VPS_IP }}:~
           scp -o StrictHostKeyChecking=no docker-compose.yml seungye@${{ secrets.VPS_IP }}:~
           scp -o StrictHostKeyChecking=no docker-compose.prod.yml seungye@${{ secrets.VPS_IP }}:~
+      
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+
+      - name: Install SQLx CLI
+        run: cargo install sqlx-cli --no-default-features --features native-tls,postgres
 
       - name: Deploy to VPS
         run: |
