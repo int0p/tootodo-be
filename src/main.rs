@@ -120,7 +120,7 @@ async fn main() {
         env: config.clone(),
         // redis_client: redis_client.clone(),
     }))
-    .merge(SwaggerUi::new("/{_:.*}").url("/api-docs/openapi.json", ApiDoc::openapi()))
+    .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
     .merge(RapiDoc::new("/api-docs/openapi.json").path("/rapidoc"))
     .layer(cors);
 
