@@ -20,14 +20,12 @@ RUN cargo build --release --locked
 # Production Stage
 FROM ubuntu:latest AS runner
 ARG APP=/usr/src/app
-ENV TZ=Etc/UTC APP_USER=appuser
+ENV TZ=Etc/UTC APP_USER=seungye
 
 # Install only the runtime dependencies
 RUN apt-get update \
     && apt-get install -y ca-certificates tzdata \
     && rm -rf /var/lib/apt/lists/* \
-    && groupadd $APP_USER \
-    && useradd -g $APP_USER $APP_USER \
     && mkdir -p ${APP}
 
 # Copy the built binary from the builder stage
