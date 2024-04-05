@@ -17,7 +17,7 @@ use tracing::info;
 
 use crate::{
     error::Error,
-    model::{LoginUserSchema, RegisterUserSchema},
+    model::{LoginUserSchema, RegisterUserSchema, User},
     utils::auth::{
         append_cookies_to_headers, auth_first, filter_user_record, generate_token,
         JWTAuthMiddleware,
