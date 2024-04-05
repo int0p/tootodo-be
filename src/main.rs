@@ -108,7 +108,7 @@ async fn main() {
     // };
 
     let cors = CorsLayer::new()
-        .allow_origin("https://tootodo.life".parse::<HeaderValue>().unwrap())
+        .allow_origin("https://tootodo.life/*".parse::<HeaderValue>().unwrap())
         .allow_methods([Method::GET, Method::POST, Method::PATCH, Method::DELETE])
         .allow_credentials(true)
         .allow_headers([AUTHORIZATION, ACCEPT, CONTENT_TYPE]);
