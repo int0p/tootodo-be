@@ -36,6 +36,9 @@ COPY --from=builder /app/target/release/tootodo-be ${APP}/tootodo-be
 # Ensure the user owns the application files
 RUN chown -R $APP_USER:$APP_USER ${APP}
 
+ENV PATH="/home/$APP_USER/.cargo/bin:${PATH}"
+RUN cargo install sqlx-cli --no-default-features --features rustls,postgres
+
 USER $APP_USER
 WORKDIR ${APP}
 
