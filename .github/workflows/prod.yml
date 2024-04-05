@@ -52,7 +52,11 @@ jobs:
       - name: Run SQLx Database Migrations
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: sqlx migrate run
+        run: |
+          until sqlx database setup; do
+            sleep 1
+          done
+          sqlx migrate run
 
       - name: Generate SQLX Prepared Queries
         run: cargo sqlx prepare
