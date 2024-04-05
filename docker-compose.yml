@@ -6,7 +6,7 @@ services:
     container_name: api-tootodo
     restart: unless-stopped
     environment:
-      DATABASE_URL: ${DATABASE_URL}
+      DATABASE_URL: ${DATABASE_CONTAINER_URL}
       CLIENT_ORIGIN: ${CLIENT_ORIGIN}
       ACCESS_TOKEN_PRIVATE_KEY: ${ACCESS_TOKEN_PRIVATE_KEY}
       REFRESH_TOKEN_PRIVATE_KEY: ${REFRESH_TOKEN_PRIVATE_KEY}
