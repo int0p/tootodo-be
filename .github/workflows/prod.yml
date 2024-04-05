@@ -115,5 +115,5 @@ jobs:
             docker-compose down
             docker-compose pull
             docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
-            docker-compose -f docker-compose.yml -f docker-compose.prod.yml exec -T app sqlx migrate run   
+            docker-compose -f docker-compose.yml -f docker-compose.prod.yml exec -T api-tootodo sqlx migrate run   
           "
