@@ -74,5 +74,5 @@ volumes:
   pgadmin-data:
 
 networks:
-  tootodo_network
+  tootodo_network:
 
