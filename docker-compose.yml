@@ -5,8 +5,6 @@ services:
     image: seungyeah/api-tootodo
     container_name: api-tootodo
     restart: unless-stopped
-    depends_on:
-      - postgres
     environment:
       DATABASE_URL: ${DATABASE_CONTAINER_URL}
       CLIENT_ORIGIN: ${CLIENT_ORIGIN}
@@ -60,14 +58,6 @@ services:
       - postgres
     networks:
       - tootodo_network
-
-  # redis:
-  #   image: redis:alpine
-  #   container_name: redis
-  #   ports:
-  #     - '6379:6379'
-  #   volumes:
-  #     - redisDB:/data      
 
 volumes:
   postgres:
