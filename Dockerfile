@@ -16,7 +16,6 @@ COPY . .
 
 # Build the actual application
 RUN cargo build --release --locked
-RUN cargo install sqlx-cli --no-default-features --features postgres
 
 # Production Stage
 FROM ubuntu:latest AS runner
