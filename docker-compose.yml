@@ -19,8 +19,10 @@ services:
       GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID}
       GOOGLE_OAUTH_CLIENT_SECRET: ${GOOGLE_OAUTH_CLIENT_SECRET}
       GOOGLE_OAUTH_REDIRECT_URL: ${GOOGLE_OAUTH_REDIRECT_URL}      
-    command: 
-      sqlx migrate run
+    command: >
+      sh -c "sqlx migrate run && exit 0"
+    depends_on:
+      - postgres
     build:
       context: .
       dockerfile: Dockerfile
