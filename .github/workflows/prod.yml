@@ -122,9 +122,9 @@ jobs:
 
       - name: Copy Files to VPS
         run: |
-          scp Caddyfile seungye@${{ secrets.VPS_IP }}:~
-          scp docker-compose.yml seungye@${{ secrets.VPS_IP }}:~
-          scp docker-compose.prod.yml seungye@${{ secrets.VPS_IP }}:~
+          scp -v Caddyfile seungye@${{ secrets.VPS_IP }}:~
+          scp -v docker-compose.yml seungye@${{ secrets.VPS_IP }}:~
+          scp -v docker-compose.prod.yml seungye@${{ secrets.VPS_IP }}:~
       
       - name: Deploy to VPS
         run: |
