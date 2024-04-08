@@ -26,7 +26,7 @@ services:
       - tootodo_network
       
   postgres:
-    image: postgres:15.3-alpine
+    image: postgres:15.6-alpine3.19
     container_name: postgres
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
