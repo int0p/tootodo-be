@@ -130,6 +130,7 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=no seungye@${{ secrets.VPS_IP }} "
             export DATABASE_URL=${{ secrets.DATABASE_CONTAINER_URL }}
+            export DATABASE_CONTAINER_URL=${{ secrets.DATABASE_CONTAINER_URL }}
             export POSTGRES_USER=${{secrets.POSTGRES_USER}}
             export POSTGRES_PASSWORD=${{secrets.POSTGRES_PASSWORD}}
             export POSTGRES_DB=${{secrets.POSTGRES_DB}}
