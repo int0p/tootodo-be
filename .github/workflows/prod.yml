@@ -122,13 +122,13 @@ jobs:
 
       - name: Copy Files to VPS
         run: |
-          scp -v Caddyfile seungye@${{ secrets.VPS_IP }}:~
-          scp -v docker-compose.yml seungye@${{ secrets.VPS_IP }}:~
-          scp -v docker-compose.prod.yml seungye@${{ secrets.VPS_IP }}:~
+          scp -v -o StrictHostKeyChecking=no Caddyfile seungye@${{ secrets.VPS_IP }}:~
+          scp -v -o StrictHostKeyChecking=no docker-compose.yml seungye@${{ secrets.VPS_IP }}:~
+          scp -v -o StrictHostKeyChecking=no docker-compose.prod.yml seungye@${{ secrets.VPS_IP }}:~
       
       - name: Deploy to VPS
         run: |
-          ssh seungye@${{ secrets.VPS_IP }} "
+          ssh -v -o StrictHostKeyChecking=no seungye@${{ secrets.VPS_IP }} "
             export DATABASE_URL=${{ secrets.DATABASE_CONTAINER_URL }}
             export POSTGRES_USER=${{secrets.POSTGRES_USER}}
             export POSTGRES_PASSWORD=${{secrets.POSTGRES_PASSWORD}}
