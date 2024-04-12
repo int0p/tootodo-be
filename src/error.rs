@@ -17,7 +17,6 @@ pub enum Error {
     InvalidLoginInfo,
     WrongUserProvider,
     GenerateTokenError(jsonwebtoken::errors::Error),
-    // RedisError(redis::RedisError),
     RefreshTokenError,
     TokenDetailsError(jsonwebtoken::errors::Error),
     InvalidToken,
@@ -96,13 +95,6 @@ impl IntoResponse for Error {
                     message: format!("error generating token: {}", e),
                 },
             ),
-            // Error::RedisError(e) => (
-            //     StatusCode::INTERNAL_SERVER_ERROR,
-            //     ErrorResponse {
-            //         status: "error".to_string(),
-            //         message: format!("redis error: {}", e),
-            //     },
-            // ),
             Error::RefreshTokenError => (
                 StatusCode::FORBIDDEN,
                 ErrorResponse {

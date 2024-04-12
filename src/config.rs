@@ -5,8 +5,8 @@ fn get_env_var(var_name: &str) -> String {
 #[derive(Debug, Clone)]
 pub struct Config {
     pub database_url: String,
-    // pub redis_url: String,
     pub client_origin: String,
+    pub domain: String,
 
     pub access_token_private_key: String,
     pub access_token_public_key: String,
@@ -26,8 +26,8 @@ pub struct Config {
 impl Config {
     pub fn init() -> Config {
         let database_url = get_env_var("DATABASE_URL");
-        // let redis_url = get_env_var("REDIS_URL");
         let client_origin = get_env_var("CLIENT_ORIGIN");
+        let domain = get_env_var("DOMAIN");
 
         let access_token_private_key = get_env_var("ACCESS_TOKEN_PRIVATE_KEY");
         let access_token_public_key = get_env_var("ACCESS_TOKEN_PUBLIC_KEY");
@@ -48,8 +48,8 @@ impl Config {
 
         Config {
             database_url,
-            // redis_url,
             client_origin,
+            domain,
             access_token_private_key,
             access_token_public_key,
             refresh_token_private_key,

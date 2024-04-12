@@ -22,7 +22,6 @@ use crate::{
         append_cookies_to_headers, auth_first, filter_user_record, generate_token,
         JWTAuthMiddleware,
     },
-    // utils::auth::{save_token_data_to_redis}
     utils::google_oauth::{get_google_user, request_token, QueryCode},
     utils::token,
     AppState,
@@ -175,21 +174,7 @@ pub async fn refresh_access_token_handler(
             }
         };
 
-    // let mut redis_client = data
-    //     .redis_client
-    //     .get_multiplexed_async_connection()
-    //     .await
-    //     .map_err(|e| Error::RedisError(e))?;
-
-    // let redis_token_user_id = redis_client
-    //     .get::<_, String>(refresh_token_details.token_uuid.to_string())
-    //     .await
-    //     .map_err(|_| Error::InvalidToken)?;
-
-    // let user_id_uuid =
-    //     uuid::Uuid::parse_str(&redis_token_user_id).map_err(|_| Error::InvalidToken)?;
-
-        let user_id_uuid = uuid::Uuid::parse_str(&refresh_token_details.user_id.to_string())
+    let user_id_uuid = uuid::Uuid::parse_str(&refresh_token_details.user_id.to_string())
         .map_err(|_| Error::InvalidToken)?;
 
     let user = sqlx::query_as!(User, "SELECT * FROM users WHERE id = $1", user_id_uuid)
@@ -205,19 +190,19 @@ pub async fn refresh_access_token_handler(
         data.env.access_token_private_key.to_owned(),
     )?;
 
-    // save_token_data_to_redis(&data, &access_token_details, data.env.access_token_max_age).await?;
-
     let access_cookie = Cookie::build((
         "access_token",
         access_token_details.token.clone().unwrap_or_default(),
     ))
     .path("/")
+    .domain(&data.env.domain)
     .max_age(time::Duration::minutes(data.env.access_token_max_age * 60))
     .same_site(SameSite::Lax)
     .http_only(true);
 
     let logged_in_cookie = Cookie::build(("logged_in", "true"))
         .path("/")
+        .domain(&data.env.domain)
         .max_age(time::Duration::minutes(data.env.access_token_max_age * 60))
         .same_site(SameSite::Lax)
         .http_only(false);
@@ -254,6 +239,7 @@ pub async fn refresh_access_token_handler(
        ("token" = [])
    )
 )]
+
 pub async fn logout_handler(
     cookie_jar: CookieJar,
     Extension(auth_guard): Extension<JWTAuthMiddleware>,
@@ -273,22 +259,9 @@ pub async fn logout_handler(
             }
         };
 
-    // let mut redis_client = data
-    //     .redis_client
-    //     .get_multiplexed_async_connection()
-    //     .await
-    //     .map_err(|e| Error::RedisError(e))?;
-
-    // redis_client
-    //     .del(&[
-    //         refresh_token_details.token_uuid.to_string(),
-    //         auth_guard.access_token_uuid.to_string(),
-    //     ])
-    //     .await
-    //     .map_err(|e| Error::RedisError(e))?;
-
     let access_cookie = Cookie::build(("access_token", ""))
         .path("/")
+        .domain(&data.env.domain)
         .max_age(time::Duration::minutes(-1))
         .same_site(SameSite::Lax)
         .http_only(true)
@@ -296,6 +269,7 @@ pub async fn logout_handler(
     
     let refresh_cookie = Cookie::build(("refresh_token", ""))
         .path("/")
+        .domain(&data.env.domain)
         .max_age(time::Duration::minutes(-1))
         .same_site(SameSite::Lax)
         .http_only(true)
@@ -303,6 +277,7 @@ pub async fn logout_handler(
 
     let logged_in_cookie = Cookie::build(("logged_in", "false"))
         .path("/")
+        .domain(&data.env.domain)
         .max_age(time::Duration::minutes(-1))
         .same_site(SameSite::Lax)
         .http_only(false)
