@@ -12,12 +12,9 @@ pub enum Error {
     // mongodb
     MongoError(mongodb::error::Error),
     MongoErrorKind(mongodb::error::ErrorKind),
-    MongoDuplicateError(mongodb::error::Error),
     MongoQueryError(mongodb::error::Error),
     MongoSerializeBsonError(mongodb::bson::ser::Error),
     MongoDataError(mongodb::bson::document::ValueAccessError),
-    InvalidIDError(String),
-    NotFoundError(String),
 }
 
 impl IntoResponse for Error {
@@ -57,27 +54,6 @@ impl IntoResponse for Error {
                 ErrorResponse {
                     status: "error".to_string(),
                     message: format!("MongoDB error kind: {}", e),
-                },
-            ),
-            Error::MongoDuplicateError(_) => (
-                StatusCode::CONFLICT,
-                ErrorResponse {
-                    status: "fail".to_string(),
-                    message: "Note with that title already exists".to_string(),
-                },
-            ),
-            Error::InvalidIDError(id) => (
-                StatusCode::BAD_REQUEST,
-                ErrorResponse {
-                    status: "fail".to_string(),
-                    message: format!("invalid ID: {}", id),
-                },
-            ),
-            Error::NotFoundError(id) => (
-                StatusCode::NOT_FOUND,
-                ErrorResponse {
-                    status: "fail".to_string(),
-                    message: format!("Note with ID: {} not found", id),
                 },
             ),
             Error::MongoError(e) => (

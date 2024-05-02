@@ -1,6 +1,6 @@
 mod config;
 mod auth;
-mod model;
+mod models;
 mod db;
 mod error;
 

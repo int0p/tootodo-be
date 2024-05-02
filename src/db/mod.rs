@@ -1,5 +1,6 @@
 pub mod error;
-use crate::model::memo::model::NoteModel;
+use crate::models::memo::controller::MemoBMC;
+use crate::models::memo::model::NoteModel;
 use crate::config::{self, Config};
 use mongodb::bson::Document;
 use mongodb::{options::ClientOptions, Client, Collection};
@@ -42,8 +43,7 @@ impl DB {
 
 #[derive(Clone, Debug)]
 pub struct MongoDB {
-    pub note_collection: Collection<NoteModel>,
-    pub collection: Collection<Document>,
+    pub note: MemoBMC,
 }
 
 impl MongoDB {
@@ -59,14 +59,14 @@ impl MongoDB {
         let client = Client::with_options(client_options).map_err(Error::MongoError)?;
         let database = client.database(database_name.as_str());
 
-        let note_collection = database.collection(collection_name.as_str());
-        let collection = database.collection::<Document>(collection_name.as_str());
+        let note_collection = database.collection::<NoteModel>(collection_name.as_str());
+        let note_doc = database.collection::<Document>(collection_name.as_str());
+        let note = MemoBMC { collection: note_collection, doc_collection: note_doc};
 
-        println!("✅ Database connected successfully");
+        println!("✅ Mongo Database connected successfully");
 
         Ok(Self {
-            note_collection,
-            collection,
+            note,
         })
     }
 }
