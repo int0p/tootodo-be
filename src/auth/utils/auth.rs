@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use serde_json::json;
 
-use crate::{error::Error, model::User, response::FilteredUser, AppState};
+use crate::{auth::{error::Error, model::User, response::FilteredUser}, db, AppState};
 
 use super::token::{self, TokenDetails};
 
@@ -159,7 +159,7 @@ pub async fn auth_request(
     let user = sqlx::query_as!(User, "SELECT * FROM users WHERE id = $1", user_id_uuid)
         .fetch_optional(&data.db)
         .await
-        .map_err(|e| Error::FetchError(e))?;
+        .map_err(|e| Error::DB(db::error::Error::FetchError(e)))?;
 
     let user = user.ok_or_else(|| Error::NoUser)?;
 

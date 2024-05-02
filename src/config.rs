@@ -8,6 +8,10 @@ pub struct Config {
     pub client_origin: String,
     pub domain: String,
 
+    pub mongodb_url: String,
+    pub mongo_initdb_db: String,
+    pub mongo_collection_note: String,
+
     pub access_token_private_key: String,
     pub access_token_public_key: String,
     pub access_token_expires_in: String,
@@ -28,6 +32,10 @@ impl Config {
         let database_url = get_env_var("DATABASE_URL");
         let client_origin = get_env_var("CLIENT_ORIGIN");
         let domain = get_env_var("DOMAIN");
+
+        let mongodb_url = get_env_var("MONGODB_URL");
+        let mongo_initdb_db = get_env_var("MONGO_INITDB_DATABASE");
+        let mongo_collection_note = get_env_var("MONGODB_NOTE_COLLECTION");
 
         let access_token_private_key = get_env_var("ACCESS_TOKEN_PRIVATE_KEY");
         let access_token_public_key = get_env_var("ACCESS_TOKEN_PUBLIC_KEY");
@@ -50,6 +58,9 @@ impl Config {
             database_url,
             client_origin,
             domain,
+            mongodb_url,
+            mongo_initdb_db,
+            mongo_collection_note,
             access_token_private_key,
             access_token_public_key,
             refresh_token_private_key,

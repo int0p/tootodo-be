@@ -1,10 +1,8 @@
 mod config;
-mod error;
-mod handler;
+mod auth;
 mod model;
-mod response;
-mod route;
-mod utils;
+mod db;
+mod error;
 
 use axum::http::{
     header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE},
@@ -12,9 +10,6 @@ use axum::http::{
 };
 use config::Config;
 use dotenv::dotenv;
-// use redis::Client;
-use route::create_router;
-use sqlx::postgres::PgPoolOptions;
 use sqlx::{Pool, Postgres};
 use std::sync::Arc;
 use tower_http::cors::CorsLayer;
@@ -26,18 +21,74 @@ use utoipa::{
 };
 use utoipa_rapidoc::RapiDoc;
 use utoipa_swagger_ui::SwaggerUi;
+use db::{DB,MongoDB};
+pub use self::error::{Error,Result};
+
+pub struct AppState {
+    pub db: Pool<Postgres>,
+    pub mongodb: MongoDB,
+    pub env: Config,
+    // pub redis_client: Client,
+}
+
+#[tokio::main]
+async fn main() -> Result<()>{
+    let args: Vec<String> = std::env::args().collect();
+    if args.len() > 1 && args[1] == "dev" {
+        dotenv::from_filename(".env.dev").ok();
+    }else{
+        dotenv().ok();
+    }
+
+    tracing_subscriber::fmt()
+        .without_time() // For early local development.
+        .with_target(false)
+        .with_env_filter(EnvFilter::from_default_env())
+        .init();
+
+    let origins = [
+        "https://tootodo.life".parse::<HeaderValue>().map_err(|e| Error::HeaderError(e))?,
+        "http://localhost:5173".parse::<HeaderValue>().map_err(|e| Error::HeaderError(e))?,
+    ];
+    
+    let cors = CorsLayer::new()
+        .allow_origin(origins)
+        .allow_methods([Method::GET, Method::POST, Method::PATCH, Method::DELETE])
+        .allow_credentials(true)
+        .allow_headers([AUTHORIZATION, ACCEPT, CONTENT_TYPE]);
+
+    let config = Config::init();
+    let postgredb = DB::init().await?;
+    let mongodb = MongoDB::init().await?;
+
+    let app = auth::create_router(Arc::new(AppState {
+        db: postgredb.db.clone(),
+        mongodb: mongodb.clone(),
+        env: config.clone(),
+    }))
+    .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
+    .merge(RapiDoc::new("/api-docs/openapi.json").path("/rapidoc"))
+    .layer(cors);
+
+    println!("🚀 Server started successfully");
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:8000").await .map_err(|e| Error::IOError(e))?;
+
+    Ok(axum::serve(listener, app).await .map_err(|e| Error::IOError(e))?)
+}
+
 
 #[derive(OpenApi)]
 #[openapi(
     paths(
-        handler::health_checker_handler,
-        handler::register_user_handler,
-        handler::login_user_handler,
-        handler::logout_handler,
-        handler::get_me_handler,
+        auth::handler::health_checker_handler,
+        auth::handler::register_user_handler,
+        auth::handler::login_user_handler,
+        auth::handler::logout_handler,
+        auth::handler::get_me_handler,
     ),
     components(
-        schemas(model::FilterUser,model::UserData,model::UserResponse,model::RegisterUserSchema, model::LoginUserSchema,error::ErrorResponse,model::LoginUserResponse),
+        schemas(auth::model::FilterUser,auth::model::UserData,auth::model::UserResponse,auth::model::RegisterUserSchema, auth::model::LoginUserSchema,
+           error::ErrorResponse,auth::model::LoginUserResponse),
     ),
     tags(
         (name = "Rust REST API", description = "Authentication in Rust Endpoints")
@@ -62,71 +113,4 @@ impl Modify for SecurityAddon {
             )
         }
     }
-}
-pub struct AppState {
-    pub db: Pool<Postgres>,
-    pub env: Config,
-    // pub redis_client: Client,
-}
-
-#[tokio::main]
-async fn main() {
-
-    let args: Vec<String> = std::env::args().collect();
-    if args.len() > 1 && args[1] == "dev" {
-        dotenv::from_filename(".env.dev").ok();
-    }else{
-        dotenv().ok();
-    }
-
-    let config = Config::init();
-
-    tracing_subscriber::fmt()
-        .without_time() // For early local development.
-        .with_target(false)
-        .with_env_filter(EnvFilter::from_default_env())
-        .init();
-
-    let pool = match PgPoolOptions::new()
-        .max_connections(10)
-        .connect(&config.database_url)
-        .await
-    {
-        Ok(pool) => {
-            println!("✅Connection to the database is successful!");
-            pool
-        }
-        Err(err) => {
-            println!("🔥 Failed to connect to the database: {:?}", err);
-            std::process::exit(1);
-        }
-    };
-
-    match sqlx::migrate!("./migrations").run(&pool).await {
-        Ok(_) => println!("Migrations executed successfully."),
-        Err(e) => eprintln!("Error executing migrations: {}", e),
-    };
-
-    let origins = [
-        "https://tootodo.life".parse::<HeaderValue>().unwrap(),
-        "http://localhost:5173".parse::<HeaderValue>().unwrap(),
-    ];
-    
-    let cors = CorsLayer::new()
-        .allow_origin(origins)
-        .allow_methods([Method::GET, Method::POST, Method::PATCH, Method::DELETE])
-        .allow_credentials(true)
-        .allow_headers([AUTHORIZATION, ACCEPT, CONTENT_TYPE]);
-
-    let app = create_router(Arc::new(AppState {
-        db: pool.clone(),
-        env: config.clone(),
-    }))
-    .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
-    .merge(RapiDoc::new("/api-docs/openapi.json").path("/rapidoc"))
-    .layer(cors);
-
-    println!("🚀 Server started successfully");
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:8000").await.unwrap();
-    axum::serve(listener, app).await.unwrap()
 }

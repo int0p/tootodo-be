@@ -14,3 +14,7 @@ services:
   pgadmin:
     ports:
       - 5050:80
+  
+  mongo:
+    ports:
+      - '6000:27017'

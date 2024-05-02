@@ -1,18 +1,8 @@
-use crate::auth;
-use crate::db;
-use crate::model;
-use axum::http;
 use derive_more::From;
-use serde::Serialize;
-use utoipa::ToSchema;
+use crate::{db,auth,error::ErrorResponse};
+use super::memo;
 
 pub type Result<T> = core::result::Result<T, Error>;
-
-#[derive(Debug, Serialize,ToSchema)]
-pub struct ErrorResponse {
-    pub status: String,
-    pub message: String,
-}
 
 #[derive(Debug, From)]
 pub enum Error {
@@ -21,14 +11,9 @@ pub enum Error {
 	Auth(auth::error::Error),
     #[from]
     DB(db::error::Error),
-    #[from]
-    Model(model::error::Error),
-
-	IOError(std::io::Error),
-	HeaderError(http::header::InvalidHeaderValue),
+   #[from]
+   Memo(memo::error::Error),
 }
-
-
 
 // region:    --- Error Boilerplate
 impl core::fmt::Display for Error {

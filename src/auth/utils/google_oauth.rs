@@ -1,4 +1,4 @@
-use crate::{error::Error, AppState};
+use crate::{auth::error::Error, AppState};
 use reqwest::{Client, Url};
 use serde::Deserialize;
 use std::sync::Arc;

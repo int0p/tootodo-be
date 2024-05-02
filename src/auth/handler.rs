@@ -14,9 +14,9 @@ use axum_extra::extract::{
 use rand_core::OsRng;
 use serde_json::json;
 use tracing::info;
-
-use crate::{
-    error::Error,
+use crate::{db, AppState};
+use super::{
+    error::{Error, Result},
     model::{LoginUserSchema, RegisterUserSchema, User},
     utils::auth::{
         append_cookies_to_headers, auth_first, filter_user_record, generate_token,
@@ -24,10 +24,7 @@ use crate::{
     },
     utils::google_oauth::{get_google_user, request_token, QueryCode},
     utils::token,
-    AppState,
 };
-
-// use redis::AsyncCommands;
 
 #[utoipa::path(
     get,
@@ -67,7 +64,7 @@ pub async fn health_checker_handler() -> impl IntoResponse {
 pub async fn register_user_handler(
     State(data): State<Arc<AppState>>,
     Json(body): Json<RegisterUserSchema>,
-) -> Result<impl IntoResponse, Error> {
+) -> Result<impl IntoResponse> {
     info!("start register user");
     // email로 user검색
     let user_exists: Option<bool> =
@@ -75,7 +72,7 @@ pub async fn register_user_handler(
             .bind(body.email.to_owned().to_ascii_lowercase())
             .fetch_one(&data.db)
             .await
-            .map_err(|e| Error::DatabaseError(e))?;
+            .map_err(|e| Error::DB(db::error::Error::DatabaseError(e)))?;
     if let Some(exists) = user_exists {
         if exists {
             return Err(Error::UserAlreadyExists);
@@ -98,7 +95,7 @@ pub async fn register_user_handler(
     )
     .fetch_one(&data.db)
     .await
-    .map_err(|e| Error::DatabaseError(e))?;
+    .map_err(|e| Error::DB(db::error::Error::DatabaseError(e)))?;
 
     let user_response = serde_json::json!({"status": "success","data": serde_json::json!({
         "user": filter_user_record(&user)
@@ -121,7 +118,7 @@ pub async fn register_user_handler(
 pub async fn login_user_handler(
     State(data): State<Arc<AppState>>,
     Json(body): Json<LoginUserSchema>,
-) -> Result<impl IntoResponse, Error> {
+) -> Result<impl IntoResponse> {
     let user = sqlx::query_as!(
         User,
         "SELECT * FROM users WHERE email = $1",
@@ -129,7 +126,7 @@ pub async fn login_user_handler(
     )
     .fetch_optional(&data.db)
     .await
-    .map_err(|e| Error::DatabaseError(e))?
+    .map_err(|e| Error::DB(db::error::Error::DatabaseError(e)))?
     .ok_or_else(|| Error::InvalidLoginInfo)?;
 
     if user.provider != "local" {
@@ -159,7 +156,7 @@ pub async fn login_user_handler(
 pub async fn refresh_access_token_handler(
     cookie_jar: CookieJar,
     State(data): State<Arc<AppState>>,
-) -> Result<impl IntoResponse, Error> {
+) -> Result<impl IntoResponse> {
     let refresh_token = cookie_jar
         .get("refresh_token")
         .map(|cookie| cookie.value().to_string())
@@ -180,8 +177,8 @@ pub async fn refresh_access_token_handler(
     let user = sqlx::query_as!(User, "SELECT * FROM users WHERE id = $1", user_id_uuid)
         .fetch_optional(&data.db)
         .await
-        .map_err(|e| Error::FetchError(e))?;
-
+        .map_err(|e| Error::DB(db::error::Error::FetchError(e)))?;
+    
     let user = user.ok_or_else(|| Error::NoUser)?;
 
     let access_token_details = generate_token(
@@ -239,12 +236,11 @@ pub async fn refresh_access_token_handler(
        ("token" = [])
    )
 )]
-
 pub async fn logout_handler(
     cookie_jar: CookieJar,
     Extension(auth_guard): Extension<JWTAuthMiddleware>,
     State(data): State<Arc<AppState>>,
-) -> Result<impl IntoResponse, Error> {
+) -> Result<impl IntoResponse> {
     let refresh_token = cookie_jar
         .get("refresh_token")
         .map(|cookie| cookie.value().to_string())
@@ -303,9 +299,10 @@ pub async fn logout_handler(
        ("token" = [])
    )
 )]
+
 pub async fn get_me_handler(
     Extension(jwtauth): Extension<JWTAuthMiddleware>,
-) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
+) -> axum::response::Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
     let json_response = serde_json::json!({
         "status":  "success",
         "data": serde_json::json!({
@@ -319,7 +316,7 @@ pub async fn get_me_handler(
 pub async fn google_oauth_handler(
     query: Query<QueryCode>,
     State(data): State<Arc<AppState>>,
-) -> Result<impl IntoResponse, Error> {
+) -> Result<impl IntoResponse> {
     info!("start google login");
     let code = &query.code;
     let state = &query.state;
@@ -350,7 +347,7 @@ pub async fn google_oauth_handler(
     )
     .fetch_optional(&data.db)
     .await
-    .map_err(|e| Error::DatabaseError(e))?;
+    .map_err(|e| Error::DB(db::error::Error::DatabaseError(e)))?;
 
     // insert user if user not exists in db
     let user = match user {
@@ -373,7 +370,7 @@ pub async fn google_oauth_handler(
             .fetch_one(&data.db)
             .await
             .map_err(|e| {
-                Error::DatabaseError(e)
+                Error::DB(db::error::Error::DatabaseError(e))
             })?
         }
     };

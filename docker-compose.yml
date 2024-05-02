@@ -43,6 +43,7 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - postgres:/var/lib/postgresql/data
+    restart: always
     healthcheck:
       test: ["CMD", "pg_isready", "-h", "postgres", "-U", "${POSTGRES_USER}"]
       interval: 5s
@@ -66,9 +67,21 @@ services:
     networks:
       - tootodo_network
 
+  mongo:
+      image: mongo:latest
+      container_name: mongo
+      env_file:
+        - ./.env
+      volumes:
+        - mongo:/data/db
+      restart: always
+      networks:
+      - tootodo_network
+
 volumes:
   postgres:
   pgadmin-data:
+  mongo:
 
 networks:
   tootodo_network:

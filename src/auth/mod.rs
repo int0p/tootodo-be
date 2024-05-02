@@ -1,3 +1,9 @@
+pub mod utils;
+pub mod error;
+pub mod model;
+pub mod handler;
+mod response;
+
 use std::sync::Arc;
 
 use axum::{
@@ -6,13 +12,14 @@ use axum::{
     Router,
 };
 
-use crate::{
+use crate::AppState;
+
+use self::{
     handler::{
         get_me_handler, health_checker_handler, login_user_handler, logout_handler,
         refresh_access_token_handler, register_user_handler, google_oauth_handler
     },
     utils::auth::auth_request,
-    AppState,
 };
 
 
@@ -34,5 +41,4 @@ pub fn create_router(app_state: Arc<AppState>) -> Router {
                 .route_layer(middleware::from_fn_with_state(app_state.clone(), auth_request)),
         )
         .with_state(app_state)
-
 }
