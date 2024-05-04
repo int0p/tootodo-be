@@ -1,12 +1,14 @@
 use chrono::prelude::*;
 use mongodb::bson::{self, oid::ObjectId};
 use serde::{Deserialize, Serialize};
-
+use uuid::Uuid;
 #[allow(non_snake_case)]
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct NoteModel {
     #[serde(rename = "_id")]
     pub id: ObjectId,
+    #[serde(with = "bson::serde_helpers::uuid_1_as_binary")]
+    pub user: Uuid,
     pub title: String,
     pub content: String,
     pub category: Option<String>,
@@ -31,6 +33,7 @@ pub struct ParamOptions {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct CreateNoteSchema {
     pub title: String,
+    pub user: Uuid,
     pub content: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub category: Option<String>,
@@ -40,6 +43,7 @@ pub struct CreateNoteSchema {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct UpdateNoteSchema {
+    pub user: Uuid,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]

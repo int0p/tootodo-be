@@ -1,18 +1,14 @@
-use derive_more::From;
 use crate::{db,auth,error::ErrorResponse};
-use super::memo;
+use super::note;
 
 pub type Result<T> = core::result::Result<T, Error>;
 
-#[derive(Debug, From)]
+#[derive(Debug)]
 pub enum Error {
 	// -- Modules
-	#[from]
 	Auth(auth::error::Error),
-    #[from]
     DB(db::error::Error),
-   #[from]
-   Memo(memo::error::Error),
+   Memo(note::error::Error),
 }
 
 // region:    --- Error Boilerplate

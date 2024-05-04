@@ -2,12 +2,13 @@ mod config;
 mod auth;
 mod models;
 mod db;
+mod ctx;
 mod error;
 
-use axum::http::{
+use axum::{http::{
     header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE},
     HeaderValue, Method,
-};
+}, middleware, Router};
 use config::Config;
 use dotenv::dotenv;
 use sqlx::{Pool, Postgres};
@@ -22,6 +23,8 @@ use utoipa::{
 use utoipa_rapidoc::RapiDoc;
 use utoipa_swagger_ui::SwaggerUi;
 use db::{DB,MongoDB};
+use crate::auth::utils::auth::auth_request;
+
 pub use self::error::{Error,Result};
 
 pub struct AppState {
@@ -61,14 +64,18 @@ async fn main() -> Result<()>{
     let postgredb = DB::init().await?;
     let mongodb = MongoDB::init().await?;
 
-    let app = auth::create_router(Arc::new(AppState {
+    let app_state = Arc::new(AppState {
         db: postgredb.db.clone(),
         mongodb: mongodb.clone(),
         env: config.clone(),
-    }))
-    .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
-    .merge(RapiDoc::new("/api-docs/openapi.json").path("/rapidoc"))
-    .layer(cors);
+    });
+    let app = Router::new()
+        .merge(auth::create_router(app_state.clone()))
+        .merge(models::note::create_router(app_state.clone()))    
+        .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
+        .merge(RapiDoc::new("/api-docs/openapi.json").path("/rapidoc"))
+        .layer(middleware::from_fn_with_state(app_state.clone(), auth_request))
+        .layer(cors);
 
     println!("🚀 Server started successfully");
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8000").await .map_err(|e| Error::IOError(e))?;

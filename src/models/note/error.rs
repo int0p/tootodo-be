@@ -1,18 +1,20 @@
 use axum::{http::StatusCode, response::{IntoResponse, Response}, Json};
 use crate::{db, error::ErrorResponse};
 use utoipa::ToSchema;
-use derive_more::From;
 
 pub type Result<T> = core::result::Result<T, Error>;
 
-#[derive(Debug,From,ToSchema)]
+#[derive(Debug,ToSchema)]
 pub enum Error {
-    #[from]
     DB(db::error::Error),
     
     MongoDuplicateError(mongodb::error::Error),
+
     InvalidIDError(String),
+
     NotFoundError(String),
+
+    WrongUserAccess,
 }
 
 impl IntoResponse for Error {
@@ -40,6 +42,13 @@ impl IntoResponse for Error {
                 ErrorResponse {
                     status: "fail".to_string(),
                     message: format!("Note with ID: {} not found", id),
+                },
+            ),
+            Error::WrongUserAccess => (
+                StatusCode::FORBIDDEN,
+                ErrorResponse {
+                    status: "fail".to_string(),
+                    message: "You do not have access to this note".to_string(),
                 },
             ),
         };

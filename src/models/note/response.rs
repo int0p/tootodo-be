@@ -1,5 +1,6 @@
 use chrono::{DateTime, Utc};
 use serde::Serialize;
+use uuid::Uuid;
 
 #[derive(Serialize)]
 pub struct GenericResponse {
@@ -11,6 +12,7 @@ pub struct GenericResponse {
 #[derive(Serialize, Debug)]
 pub struct NoteResponse {
     pub id: String,
+    pub user:Uuid,
     pub title: String,
     pub content: String,
     pub category: String,
@@ -20,7 +22,7 @@ pub struct NoteResponse {
 }
 
 #[derive(Serialize, Debug)]
-pub struct NoteData {
+pub struct NoteData {    
     pub note: NoteResponse,
 }
 

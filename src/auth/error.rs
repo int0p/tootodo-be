@@ -1,6 +1,5 @@
 use argon2::password_hash;
 use utoipa::ToSchema;
-use derive_more::From;
 
 use axum::{
     http::StatusCode,
@@ -12,9 +11,8 @@ use crate::{db, error::ErrorResponse};
 
 pub type Result<T> = core::result::Result<T, Error>;
 
-#[derive(Debug,From,ToSchema)]
+#[derive(Debug,ToSchema)]
 pub enum Error {
-    #[from]
     DB(db::error::Error),
     //auth
     CannotHashPassword(password_hash::Error),

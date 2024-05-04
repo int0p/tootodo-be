@@ -1,6 +1,4 @@
-fn get_env_var(var_name: &str) -> String {
-    std::env::var(var_name).unwrap_or_else(|_| panic!("{} must be set", var_name))
-}
+
 
 #[derive(Debug, Clone)]
 pub struct Config {
@@ -9,7 +7,9 @@ pub struct Config {
     pub domain: String,
 
     pub mongodb_url: String,
+    pub mongodb_test_url:String,
     pub mongo_initdb_db: String,
+    pub mongo_test_db: String,
     pub mongo_collection_note: String,
 
     pub access_token_private_key: String,
@@ -34,6 +34,8 @@ impl Config {
         let domain = get_env_var("DOMAIN");
 
         let mongodb_url = get_env_var("MONGODB_URL");
+        let mongodb_test_url = get_env_var("MONGODB_TEST_URL");
+        let mongo_test_db = get_env_var("MONGO_TEST_DATABASE");
         let mongo_initdb_db = get_env_var("MONGO_INITDB_DATABASE");
         let mongo_collection_note = get_env_var("MONGODB_NOTE_COLLECTION");
 
@@ -59,7 +61,9 @@ impl Config {
             client_origin,
             domain,
             mongodb_url,
+            mongodb_test_url,
             mongo_initdb_db,
+            mongo_test_db,
             mongo_collection_note,
             access_token_private_key,
             access_token_public_key,
@@ -74,4 +78,8 @@ impl Config {
             google_oauth_redirect_url,
         }
     }
+}
+
+fn get_env_var(var_name: &str) -> String {
+    std::env::var(var_name).unwrap_or_else(|_| panic!("{} must be set", var_name))
 }

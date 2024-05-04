@@ -26,6 +26,8 @@ pub enum Error {
 
 	IOError(std::io::Error),
 	HeaderError(http::header::InvalidHeaderValue),
+	
+	CtxCannotNewRootCtx,
 }
 
 

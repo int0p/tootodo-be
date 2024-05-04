@@ -3161,6 +3161,7 @@ dependencies = [
  "dotenv",
  "futures",
  "jsonwebtoken",
+ "lazy_static",
  "mongodb",
  "rand_core",
  "reqwest",
