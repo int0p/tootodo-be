@@ -231,7 +231,7 @@ mod tests {
     async fn setup() -> MemoBMC {
         dotenv().ok();
         let mongodb = MongoDB::test().await.unwrap();
-        // db 초기화
+        
         // 시드 데이터 생성
         let user = Uuid::from_bytes([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
         let seeds = vec![
@@ -308,7 +308,7 @@ mod tests {
         };
 
         let result = memo_bmc.create_note(&body, &user_id).await;
-        dbg!(&result);
+        // dbg!(&result);
         assert!(result.is_ok());
 
         let note_response = result.unwrap();
@@ -327,7 +327,7 @@ mod tests {
         let page = 1;
 
         let result = memo_bmc.fetch_notes(limit, page, &user_id).await;
-        dbg!(&result);
+        // dbg!(&result);
         assert!(result.is_ok());
 
         let note_list_response = result.unwrap();
@@ -341,7 +341,7 @@ mod tests {
         let note_id = "507f1f77bcf86cd799439011";
 
         let result = memo_bmc.get_note(note_id, &user_id).await;
-        dbg!(&result);
+        // dbg!(&result);
         assert!(result.is_ok());
 
         let note_response = result.unwrap();
@@ -362,7 +362,7 @@ mod tests {
         };
 
         let result = memo_bmc.edit_note(note_id, &body, &user_id).await;
-        dbg!(&result);
+        // dbg!(&result);
         assert!(result.is_ok());
 
         let note_response = result.unwrap();
@@ -379,7 +379,7 @@ mod tests {
         let note_id = "507f191e810c19729de860ec";
 
         let result = memo_bmc.delete_note(note_id).await;
-        dbg!(&result);
+        // dbg!(&result);
         assert!(result.is_ok());
     }
 }
