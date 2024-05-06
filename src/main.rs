@@ -1,19 +1,27 @@
-mod config;
 mod auth;
-mod models;
-mod db;
+mod config;
 mod ctx;
+mod db;
 mod error;
+mod models;
 
-use axum::{http::{
-    header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE},
-    HeaderValue, Method,
-}, middleware, Router};
+use crate::auth::utils::auth::auth_request;
+use axum::{
+    body::Body, http::{
+        header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE},
+        HeaderValue, Method,
+    }, middleware, Router
+};
 use config::Config;
+use db::{MongoDB, DB};
 use dotenv::dotenv;
 use sqlx::{Pool, Postgres};
+use tracing::Span;
 use std::sync::Arc;
-use tower_http::cors::CorsLayer;
+use tower_http::{classify::ServerErrorsFailureClass, cors::CorsLayer, trace::TraceLayer};
+use axum::http::{Request, Response, HeaderMap};
+use bytes::Bytes;
+use std::time::Duration;
 use tracing_subscriber::EnvFilter;
 use utoipa::OpenApi;
 use utoipa::{
@@ -22,10 +30,8 @@ use utoipa::{
 };
 use utoipa_rapidoc::RapiDoc;
 use utoipa_swagger_ui::SwaggerUi;
-use db::{DB,MongoDB};
-use crate::auth::utils::auth::auth_request;
 
-pub use self::error::{Error,Result};
+pub use self::error::{Error, Result};
 
 pub struct AppState {
     pub db: Pool<Postgres>,
@@ -35,11 +41,11 @@ pub struct AppState {
 }
 
 #[tokio::main]
-async fn main() -> Result<()>{
+async fn main() -> Result<()> {
     let args: Vec<String> = std::env::args().collect();
     if args.len() > 1 && args[1] == "dev" {
         dotenv::from_filename(".env.dev").ok();
-    }else{
+    } else {
         dotenv().ok();
     }
 
@@ -50,10 +56,14 @@ async fn main() -> Result<()>{
         .init();
 
     let origins = [
-        "https://tootodo.life".parse::<HeaderValue>().map_err(|e| Error::HeaderError(e))?,
-        "http://localhost:5173".parse::<HeaderValue>().map_err(|e| Error::HeaderError(e))?,
+        "https://tootodo.life"
+            .parse::<HeaderValue>()
+            .map_err(|e| Error::HeaderError(e))?,
+        "http://localhost:5173"
+            .parse::<HeaderValue>()
+            .map_err(|e| Error::HeaderError(e))?,
     ];
-    
+
     let cors = CorsLayer::new()
         .allow_origin(origins)
         .allow_methods([Method::GET, Method::POST, Method::PATCH, Method::DELETE])
@@ -71,18 +81,45 @@ async fn main() -> Result<()>{
     });
     let app = Router::new()
         .merge(auth::create_router(app_state.clone()))
-        .merge(models::note::create_router(app_state.clone()))    
+        .merge(models::note::create_router(app_state.clone()))
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .merge(RapiDoc::new("/api-docs/openapi.json").path("/rapidoc"))
-        .layer(middleware::from_fn_with_state(app_state.clone(), auth_request))
+        .layer(middleware::from_fn_with_state(
+            app_state.clone(),
+            auth_request,
+        ))
+        .layer(
+            TraceLayer::new_for_http()
+            .make_span_with(|request: &Request<Body>| {
+                tracing::debug_span!("http-request")
+            })
+            .on_request(|request: &Request<Body>, _span: &Span| {
+                tracing::debug!("started {} {}", request.method(), request.uri().path())
+            })
+            .on_response(|response: &Response<Body>, latency: Duration, _span: &Span| {
+                tracing::debug!("response generated in {:?}", latency)
+            })
+            .on_body_chunk(|chunk: &Bytes, latency: Duration, _span: &Span| {
+                tracing::debug!("sending {} bytes", chunk.len())
+            })
+            .on_eos(|trailers: Option<&HeaderMap>, stream_duration: Duration, _span: &Span| {
+                tracing::debug!("stream closed after {:?}", stream_duration)
+            })
+            .on_failure(|error: ServerErrorsFailureClass, latency: Duration, _span: &Span| {
+                tracing::debug!("something went wrong")
+            })
+        )
         .layer(cors);
 
     println!("🚀 Server started successfully");
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:8000").await .map_err(|e| Error::IOError(e))?;
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:8000")
+        .await
+        .map_err(|e| Error::ServerError(e))?;
 
-    Ok(axum::serve(listener, app).await .map_err(|e| Error::IOError(e))?)
+    Ok(axum::serve(listener, app)
+        .await
+        .map_err(|e| Error::ServerError(e))?)
 }
-
 
 #[derive(OpenApi)]
 #[openapi(

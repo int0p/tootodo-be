@@ -24,7 +24,7 @@ pub enum Error {
     #[from]
     Model(models::error::Error),
 
-	IOError(std::io::Error),
+	ServerError(std::io::Error),
 	HeaderError(http::header::InvalidHeaderValue),
 	
 	CtxCannotNewRootCtx,
