@@ -1,6 +1,10 @@
-use super::error::{Error::*, Result};
-use super::model::{CreateNoteSchema, NoteModel, UpdateNoteSchema};
-use super::response::{NoteData, NoteListResponse, NoteResponse, SingleNoteResponse};
+
+use super::{
+    error::{Error::*,Result},
+    model::NoteModel,
+    response::{NoteData, NoteListResponse, NoteResponse, SingleNoteResponse},
+    schema::{CreateNoteSchema, FilterOptions, UpdateNoteSchema},
+};
 use crate::db::error::Error as DBError;
 use chrono::prelude::*;
 use futures::StreamExt;
@@ -11,6 +15,7 @@ use mongodb::{bson, Collection, IndexModel};
 use std::convert::TryFrom;
 use std::str::FromStr;
 use uuid::Uuid;
+
 
 #[derive(Clone, Debug)]
 pub struct MemoBMC {
@@ -230,7 +235,7 @@ mod tests {
 
     async fn setup() -> MemoBMC {
         dotenv().ok();
-        let mongodb = MongoDB::test().await.unwrap();
+        let mongodb = MongoDB::init_test().await.unwrap();
         
         // 시드 데이터 생성
         let user = Uuid::from_bytes([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);

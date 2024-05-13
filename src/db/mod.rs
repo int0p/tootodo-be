@@ -1,8 +1,7 @@
 pub mod error;
-use crate::models::note::controller::MemoBMC;
-use crate::models::note::model::NoteModel;
 use crate::config::{self, Config};
 use mongodb::bson::Document;
+use mongodb::Database;
 use mongodb::{options::ClientOptions, Client, Collection};
 use sqlx::postgres::PgPoolOptions;
 use sqlx::{Pool, Postgres};
@@ -43,7 +42,7 @@ impl DB {
 
 #[derive(Clone, Debug)]
 pub struct MongoDB {
-    pub note: MemoBMC,
+    pub db: Database,
 }
 
 impl MongoDB {
@@ -52,45 +51,40 @@ impl MongoDB {
         let config = Config::init();
         let mongodb_uri = config.mongodb_url;
         let database_name = config.mongo_initdb_db;
-        let collection_name = config.mongo_collection_note;
 
         let mut client_options = ClientOptions::parse(mongodb_uri).await.map_err(Error::MongoError)?;
         client_options.app_name = Some(database_name.to_string());
 
         let client = Client::with_options(client_options).map_err(Error::MongoError)?;
-        let database = client.database(database_name.as_str());
+        let db = client.database(database_name.as_str());
 
-        let note_collection = database.collection::<NoteModel>(collection_name.as_str());
-        let note_doc = database.collection::<Document>(collection_name.as_str());
-        let note = MemoBMC { collection: note_collection, doc_collection: note_doc};
+        // let collection_name = config.mongo_collection_note;
+        // let note_collection = database.collection::<NoteModel>(collection_name.as_str());
+        // let note_doc = database.collection::<Document>(collection_name.as_str());
+        // let note = MemoBMC { collection: note_collection, doc_collection: note_doc};
 
         println!("✅ Mongo Database connected successfully");
 
         Ok(Self {
-            note,
+            db,
         })
     }
 
-    pub async fn test() -> Result<Self>{
+    pub async fn init_test() -> Result<Self>{
         let config = Config::init();
         let mongodb_url = config.mongodb_test_url;
         let database_name = config.mongo_test_db;
-        let collection_name = config.mongo_collection_note;
 
         let mut client_options = ClientOptions::parse(mongodb_url).await.map_err(Error::MongoError)?;
         client_options.app_name = Some(database_name.to_string());
 
         let client = Client::with_options(client_options).map_err(Error::MongoError)?;
-        let database = client.database(database_name.as_str());
+        let db = client.database(database_name.as_str());
 
-        let note_collection = database.collection::<NoteModel>(collection_name.as_str());
-        let note_doc = database.collection::<Document>(collection_name.as_str());
-        let note = MemoBMC { collection: note_collection, doc_collection: note_doc};
-
-        println!("✅ Mongo Test Database connected successfully");
+        // println!("✅ Mongo <Test> Database connected successfully");
 
         Ok(Self {
-            note,
+            db
         })
     }
 }

@@ -241,19 +241,19 @@ pub async fn logout_handler(
     Extension(auth_guard): Extension<JWTAuthMiddleware>,
     State(data): State<Arc<AppState>>,
 ) -> Result<impl IntoResponse> {
-    // let refresh_token = cookie_jar
-    //     .get("refresh_token")
-    //     .map(|cookie| cookie.value().to_string())
-    //     .ok_or_else(|| Error::InvalidToken)?;
+    let refresh_token = cookie_jar
+        .get("refresh_token")
+        .map(|cookie| cookie.value().to_string())
+        .ok_or_else(|| Error::InvalidToken)?;
 
-    // let refresh_token_details =
-    //     match token::verify_jwt_token(data.env.refresh_token_public_key.to_owned(), &refresh_token)
-    //     {
-    //         Ok(token_details) => token_details,
-    //         Err(e) => {
-    //             return Err(Error::TokenDetailsError(e));
-    //         }
-    //     };
+    let refresh_token_details =
+        match token::verify_jwt_token(data.env.refresh_token_public_key.to_owned(), &refresh_token)
+        {
+            Ok(token_details) => token_details,
+            Err(e) => {
+                return Err(Error::TokenDetailsError(e));
+            }
+        };
 
     let access_cookie = Cookie::build(("access_token", ""))
         .path("/")

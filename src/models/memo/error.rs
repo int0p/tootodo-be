@@ -1,23 +1,22 @@
-use crate::{db,error::ErrorResponse};
 use axum::{http::StatusCode, response::{IntoResponse, Response}, Json};
+use serde::Serialize;
+use crate::{db, error::ErrorResponse};
 use utoipa::ToSchema;
 
 pub type Result<T> = core::result::Result<T, Error>;
 
 #[derive(Debug,ToSchema)]
 pub enum Error {
-	// Auth(auth::error::Error),
     DB(db::error::Error),
-
-	MongoDuplicateError(mongodb::error::Error),
+    
+    MongoDuplicateError(mongodb::error::Error),
 
     InvalidIDError(String),
 
     NotFoundError(String),
-	
-	WrongUserAccess,
-}
 
+    WrongUserAccess,
+}
 
 impl IntoResponse for Error {
     fn into_response(self) -> Response {
@@ -60,14 +59,10 @@ impl IntoResponse for Error {
 
 // region:    --- Error Boilerplate
 impl core::fmt::Display for Error {
-	fn fmt(
-		&self,
-		fmt: &mut core::fmt::Formatter,
-	) -> core::result::Result<(), core::fmt::Error> {
-		write!(fmt, "{self:?}")
-	}
+    fn fmt(&self, fmt: &mut core::fmt::Formatter) -> core::result::Result<(), core::fmt::Error> {
+        write!(fmt, "{self:?}")
+    }
 }
 
 impl std::error::Error for Error {}
-
 // endregion: --- Error Boilerplate

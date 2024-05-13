@@ -2,9 +2,8 @@ pub mod controller;
 pub mod error;
 pub mod handler;
 pub mod model;
-pub mod schema;
 mod response;
-
+pub mod schema;
 use std::sync::Arc;
 
 use axum::{
@@ -12,20 +11,20 @@ use axum::{
 };
 
 use self::handler::{
-    create_note_handler, delete_note_handler, edit_note_handler, get_note_handler,
-    note_list_handler,
+    create_memo_handler, delete_memo_handler, update_memo_handler, get_memo_handler,
+    memo_list_handler,
 };
 use crate::{auth::utils::auth::auth_request, AppState};
 
 pub fn create_router(app_state: Arc<AppState>) -> Router {
     Router::new()
-        .route("/api/notes/", post(create_note_handler))
-        .route("/api/notes", get(note_list_handler))
+        .route("/api/memos/", post(create_memo_handler))
+        .route("/api/memos", get(memo_list_handler))
         .route(
-            "/api/notes/:id",
-            get(get_note_handler)
-                .patch(edit_note_handler)
-                .delete(delete_note_handler),
+            "/api/memos/:id",
+            get(get_memo_handler)
+                .patch(update_memo_handler)
+                .delete(delete_memo_handler),
         )
         .layer(middleware::from_fn_with_state(
             app_state.clone(),

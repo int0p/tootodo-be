@@ -5,12 +5,11 @@ mod db;
 mod error;
 mod models;
 
-use crate::auth::utils::auth::auth_request;
 use axum::{
     body::Body, http::{
         header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE},
         HeaderValue, Method,
-    }, middleware, Router
+    }, Router
 };
 use config::Config;
 use db::{MongoDB, DB};
@@ -50,9 +49,10 @@ async fn main() -> Result<()> {
     }
 
     tracing_subscriber::fmt()
+        .with_max_level(tracing::level_filters::LevelFilter::TRACE)
         .without_time() // For early local development.
         .with_target(false)
-        .with_env_filter(EnvFilter::from_default_env())
+        // .with_env_filter(EnvFilter::from_default_env())
         .init();
 
     let origins = [
@@ -81,13 +81,9 @@ async fn main() -> Result<()> {
     });
     let app = Router::new()
         .merge(auth::create_router(app_state.clone()))
-        .merge(models::note::create_router(app_state.clone()))
+        .merge(models::memo::create_router(app_state.clone()))
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
-        .merge(RapiDoc::new("/api-docs/openapi.json").path("/rapidoc"))
-        .layer(middleware::from_fn_with_state(
-            app_state.clone(),
-            auth_request,
-        ))
+        .merge(RapiDoc::new("/api-docs/openapi.json").path("/rapidoc"))       
         .layer(
             TraceLayer::new_for_http()
             .make_span_with(|request: &Request<Body>| {
