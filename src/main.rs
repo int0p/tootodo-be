@@ -49,7 +49,7 @@ async fn main() -> Result<()> {
     }
 
     tracing_subscriber::fmt()
-        .with_max_level(tracing::level_filters::LevelFilter::TRACE)
+        .with_max_level(tracing::level_filters::LevelFilter::DEBUG)
         .without_time() // For early local development.
         .with_target(false)
         // .with_env_filter(EnvFilter::from_default_env())
