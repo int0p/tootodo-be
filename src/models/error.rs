@@ -1,18 +1,18 @@
 use crate::{db,error::ErrorResponse};
 use axum::{http::StatusCode, response::{IntoResponse, Response}, Json};
 use utoipa::ToSchema;
+use derive_more::From;
 
 pub type Result<T> = core::result::Result<T, Error>;
 
-#[derive(Debug,ToSchema)]
+#[derive(Debug,ToSchema,From)]
 pub enum Error {
 	// Auth(auth::error::Error),
+    #[from]
     DB(db::error::Error),
 
+    #[from]
 	MongoDuplicateError(mongodb::error::Error),
-
-    InvalidIDError(String),
-
     NotFoundError(String),
 	
 	WrongUserAccess,
@@ -30,13 +30,6 @@ impl IntoResponse for Error {
                 ErrorResponse {
                     status: "fail".to_string(),
                     message: "Note with that title already exists".to_string(),
-                },
-            ),
-            Error::InvalidIDError(id) => (
-                StatusCode::BAD_REQUEST,
-                ErrorResponse {
-                    status: "fail".to_string(),
-                    message: format!("invalid ID: {}", id),
                 },
             ),
             Error::NotFoundError(id) => (

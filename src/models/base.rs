@@ -1,5 +1,6 @@
+use chrono::Utc;
 use futures::StreamExt;
-use mongodb::bson::Document;
+use mongodb::bson::{Bson, Document};
 use mongodb::bson::{doc, oid::ObjectId};
 use mongodb::options::{FindOneAndUpdateOptions, FindOptions, IndexOptions, ReturnDocument};
 use mongodb::{bson, Database, IndexModel};
@@ -15,7 +16,7 @@ use crate::db::error::Error as DBError;
 pub trait MongoBMC{
     type Model;
     type ModelResponse;
-    const COLL_NAME: &'static str; // 컬렉션 이름을 상수로 정의합니다.
+    const COLL_NAME: &'static str; 
     const DOC_COLL_NAME: &'static str;
     fn convert_doc_to_response(doc: &Self::Model)  -> Result<Self::ModelResponse>;
     fn create_doc<Schema: Serialize>(user: &Uuid, body: &Schema) -> Result<Document>;
@@ -115,7 +116,7 @@ where
     let coll = db.collection::<MC::Model>(MC::COLL_NAME);
 
     // model의 id를 ObjectId로 변환
-    let oid = ObjectId::from_str(id).map_err(|_| InvalidIDError(id.to_owned()))?;
+    let oid = ObjectId::from_str(id).map_err(|e| DBError::MongoGetOidError(e))?;
 
     // id를 이용해 문서를 찾음.
     let doc = match coll.find_one(doc! {"_id": oid, "user":user}, None).await {
@@ -140,10 +141,13 @@ where
 {
     let coll = db.collection::<MC::Model>(MC::COLL_NAME);
 
-    let oid = ObjectId::from_str(id).map_err(|_| InvalidIDError(id.to_owned()))?;
+    let oid = ObjectId::from_str(id).map_err(|e| DBError::MongoGetOidError(e))?;
+
+    let mut update_doc = bson::to_document(body).map_err(|e| DB(DBError::MongoSerializeBsonError(e)))?;
+    update_doc.insert("updatedAt", Bson::DateTime(Utc::now().into()));
 
     let update = doc! {
-        "$set": bson::to_document(body).map_err( |e| DB(DBError::MongoSerializeBsonError(e)))?,
+        "$set": update_doc,
     };
 
     // option: 문서가 업데이트된 후의 상태를 반환
@@ -170,7 +174,7 @@ pub async fn delete<MC:MongoBMC>(
 {
     let doc_coll = db.collection::<Document>(MC::DOC_COLL_NAME);
 
-    let oid = ObjectId::from_str(id).map_err(|_| InvalidIDError(id.to_owned()))?;
+    let oid = ObjectId::from_str(id).map_err(|e| DBError::MongoGetOidError(e))?;
     let filter = doc! {"_id": oid };
 
     let result = doc_coll

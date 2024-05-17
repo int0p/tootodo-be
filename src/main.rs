@@ -21,7 +21,6 @@ use tower_http::{classify::ServerErrorsFailureClass, cors::CorsLayer, trace::Tra
 use axum::http::{Request, Response, HeaderMap};
 use bytes::Bytes;
 use std::time::Duration;
-use tracing_subscriber::EnvFilter;
 use utoipa::OpenApi;
 use utoipa::{
     openapi::security::{HttpAuthScheme, HttpBuilder, SecurityScheme},
@@ -82,6 +81,7 @@ async fn main() -> Result<()> {
     let app = Router::new()
         .merge(auth::create_router(app_state.clone()))
         .merge(models::memo::create_router(app_state.clone()))
+        .merge(models::event::create_router(app_state.clone()))
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .merge(RapiDoc::new("/api-docs/openapi.json").path("/rapidoc"))       
         .layer(

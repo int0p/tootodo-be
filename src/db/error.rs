@@ -1,25 +1,40 @@
 use axum::{http::StatusCode, response::{IntoResponse, Response}, Json};
 use crate::error::ErrorResponse;
+use derive_more::From;
+
 pub type Result<T> = core::result::Result<T, Error>;
-#[derive(Debug)]
+#[derive(Debug,From)]
 pub enum Error {
     // postgresql
     FailToCreatePool(String),
     MigrationError(String),
+    #[from]
     DatabaseError(sqlx::Error),
     FetchError(sqlx::Error),
-
     // mongodb
+    #[from]
     MongoError(mongodb::error::Error),
+    #[from]
     MongoErrorKind(mongodb::error::ErrorKind),
     MongoQueryError(mongodb::error::Error),
+    #[from]
+    MongoGetOidError(mongodb::bson::oid::Error),
+    #[from]
     MongoSerializeBsonError(mongodb::bson::ser::Error),
+    #[from]
     MongoDataError(mongodb::bson::document::ValueAccessError),
 }
 
 impl IntoResponse for Error {
     fn into_response(self) -> Response {
         let (status, error_response) = match self {
+            Error::MongoGetOidError(e) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                ErrorResponse {
+                    status: "error".to_string(),
+                    message: format!("MongoDB error: {}", e),
+                },
+            ),
             Error::DatabaseError(e) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 ErrorResponse {
