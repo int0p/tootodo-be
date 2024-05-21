@@ -1,12 +1,9 @@
 
-use std::time::Duration;
 
 use chrono::{DateTime, NaiveDate, Utc};
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
-use super::model::*;
-use crate::models::chat::{model::{ChatModel, ChatType}, schema::UpdateChatSchema};
 
+use crate::models::chat::model::ChatType;
 #[derive(Deserialize, Debug, Default)]
 pub struct FilterOptions {
     pub page: Option<usize>,

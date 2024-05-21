@@ -4,6 +4,8 @@ use std::time::Duration;
 use serde::Serialize;
 use uuid::Uuid;
 
+use super::model::PropertyModel;
+
 #[derive(Serialize)]
 pub struct GenericResponse {
     pub status: String,
@@ -12,34 +14,30 @@ pub struct GenericResponse {
 
 #[allow(non_snake_case)]
 #[derive(Serialize, Debug)]
-pub struct EventResponse {
+pub struct CategoryResponse {
     pub id: String,
     pub user:Uuid,
-    pub title: String,
-    pub complete: bool,
-    pub chat_type: ChatType,
-    pub chat_msgs: Option<Vec<MsgModel>>,
-    pub start_date: Option<NaiveDate>,
-    pub due_at: Option<DateTime<Utc>>,
-    pub location: Option<String>,
+    pub name:String,
+    pub color:String,
+    pub properties: Vec<PropertyModel>,
     pub createdAt: DateTime<Utc>,
     pub updatedAt: DateTime<Utc>,
 }
 
 #[derive(Serialize, Debug)]
-pub struct EventData {    
-    pub event: EventResponse,
+pub struct CategoryData {    
+    pub category: CategoryResponse,
 }
 
 #[derive(Serialize, Debug)]
-pub struct SingleEventResponse {
+pub struct SingleCategoryResponse {
     pub status: &'static str,
-    pub data: EventData,
+    pub data: CategoryData,
 }
 
 #[derive(Serialize, Debug)]
-pub struct EventListResponse {
+pub struct CategoryListResponse {
     pub status: &'static str,
     pub results: usize,
-    pub events: Vec<EventResponse>,
+    pub categories: Vec<CategoryResponse>,
 }

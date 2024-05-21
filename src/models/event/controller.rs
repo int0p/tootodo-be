@@ -5,7 +5,10 @@ use super::{
 };
 use crate::{
     db::error::Error as DBError,
-    models::{base::{self, MongoBMC}, error::{Error::*, Result}},
+    models::{
+        base::{self, MongoBMC},
+        error::{Error::*, Result},
+    },
 };
 use chrono::prelude::*;
 use mongodb::bson;
@@ -47,7 +50,7 @@ impl MongoBMC for EventBMC {
         let serialized_data =
             bson::to_bson(body).map_err(|e| DB(DBError::MongoSerializeBsonError(e)))?;
         let document = serialized_data.as_document().unwrap();
-        
+
         // let msgs = ChatModel {
         //     src_type: ChatType::Event,
         //     msgs: None,
@@ -98,7 +101,9 @@ impl EventBMC {
 
         Ok(SingleEventResponse {
             status: "success",
-            data: EventData { event: event_result },
+            data: EventData {
+                event: event_result,
+            },
         })
     }
 
@@ -109,7 +114,9 @@ impl EventBMC {
 
         Ok(SingleEventResponse {
             status: "success",
-            data: EventData { event: event_result },
+            data: EventData {
+                event: event_result,
+            },
         })
     }
 
@@ -125,7 +132,9 @@ impl EventBMC {
 
         Ok(SingleEventResponse {
             status: "success",
-            data: EventData { event: event_result },
+            data: EventData {
+                event: event_result,
+            },
         })
     }
 
@@ -136,12 +145,14 @@ impl EventBMC {
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
-
     use super::*;
-    use crate::{db::MongoDB, models::chat::{model::{ChatType, MsgModel, MsgType}, schema::UpdateChatSchema}};
+    use crate::{
+        db::MongoDB,
+        models::chat::model::{ChatType, MsgModel, MsgType},
+    };
     use dotenv::dotenv;
     use mongodb::options::UpdateOptions;
+    use std::str::FromStr;
 
     async fn setup() -> Database {
         dotenv().ok();
@@ -159,7 +170,7 @@ mod tests {
                 chat_type: ChatType::Event,
                 chat_msgs: None,
                 start_date: Some(Utc::now().date_naive()),
-                due_at: Some(Utc.with_ymd_and_hms(2024 ,5, 28, 0, 0, 0).unwrap()),
+                due_at: Some(Utc.with_ymd_and_hms(2024, 5, 28, 0, 0, 0).unwrap()),
                 location: None,
                 createdAt: Utc::now(),
                 updatedAt: Utc::now(),
@@ -170,21 +181,19 @@ mod tests {
                 title: "잼미니 대회 관련 미팅 2회차".to_string(),
                 complete: true,
                 chat_type: ChatType::Event,
-                chat_msgs: Some(vec![
-                        MsgModel {
-                            msg_type: MsgType::Ask, 
-                            content: "기술스택 토론 예정".to_string(),
-                            created_at: Utc::now(),
-                            booked: false,
-                            chat: None,
-                        },
-                    ]),
+                chat_msgs: Some(vec![MsgModel {
+                    msg_type: MsgType::Ask,
+                    content: "기술스택 토론 예정".to_string(),
+                    created_at: Utc::now(),
+                    booked: false,
+                    chat: None,
+                }]),
                 start_date: Some(Utc::now().date_naive()),
-                due_at: Some(Utc.with_ymd_and_hms(2024 ,5, 30, 0, 0, 0).unwrap()),
+                due_at: Some(Utc.with_ymd_and_hms(2024, 5, 30, 0, 0, 0).unwrap()),
                 location: Some("학교".to_string()),
                 createdAt: Utc::now(),
                 updatedAt: Utc::now(),
-            }
+            },
         ];
 
         // 시드 데이터를 MongoDB에 삽입
@@ -278,20 +287,20 @@ mod tests {
         let body = UpdateEventSchema {
             title: Some("Updated Title".to_string()),
             complete: Some(true),
-            start_date:None,     
+            start_date: None,
             due_at: None,
             location: None,
-            chat_type: Some(ChatType::Task),      
+            chat_type: Some(ChatType::Task),
         };
 
-        let res =  EventBMC::update_event(&db, event_id, &body, &user_id).await;
+        let res = EventBMC::update_event(&db, event_id, &body, &user_id).await;
         claim::assert_ok!(&res);
         let res = res.unwrap();
         claim::assert_matches!(res.status, "success");
         assert_eq!(res.data.event.title, body.title.unwrap());
         // if let Some(content) = body.content{
-        //     assert_eq!(res.data.event.content, content);            
-        // } 
+        //     assert_eq!(res.data.event.content, content);
+        // }
         // else {dbg!(res.data.event.content);} //기존값 유지
     }
 

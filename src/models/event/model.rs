@@ -3,8 +3,7 @@ use chrono::prelude::*;
 use mongodb::bson::{self, oid::ObjectId,};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-use crate::models::chat::model::{ChatModel, ChatType, MsgModel};
-use std::time::Duration;
+use crate::models::chat::model::{ChatType, MsgModel};
 
 #[allow(non_snake_case)]
 #[derive(Serialize, Deserialize, Debug, Clone)]

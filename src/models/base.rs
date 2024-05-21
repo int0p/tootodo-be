@@ -1,8 +1,10 @@
 use chrono::Utc;
 use futures::StreamExt;
-use mongodb::bson::{Bson, Document};
 use mongodb::bson::{doc, oid::ObjectId};
-use mongodb::options::{FindOneAndUpdateOptions, FindOptions, IndexOptions, ReturnDocument};
+use mongodb::bson::{Bson, Document};
+use mongodb::options::{
+    DeleteOptions, FindOneAndUpdateOptions, FindOptions, IndexOptions, ReturnDocument,
+};
 use mongodb::{bson, Database, IndexModel};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
@@ -13,12 +15,12 @@ use uuid::Uuid;
 use super::error::{Error::*, Result};
 use crate::db::error::Error as DBError;
 
-pub trait MongoBMC{
+pub trait MongoBMC {
     type Model;
     type ModelResponse;
-    const COLL_NAME: &'static str; 
+    const COLL_NAME: &'static str;
     const DOC_COLL_NAME: &'static str;
-    fn convert_doc_to_response(doc: &Self::Model)  -> Result<Self::ModelResponse>;
+    fn convert_doc_to_response(doc: &Self::Model) -> Result<Self::ModelResponse>;
     fn create_doc<Schema: Serialize>(user: &Uuid, body: &Schema) -> Result<Document>;
 }
 
@@ -43,7 +45,7 @@ where
     let mut cursor = coll
         .find(doc! {"user": user}, find_options)
         .await
-        .map_err(|e| DB(DBError::MongoQueryError(e)))?;
+        .map_err(|e| DBError::MongoQueryError(e))?;
 
     let mut json_result: Vec<MC::ModelResponse> = Vec::new();
     while let Some(doc) = cursor.next().await {
@@ -76,7 +78,7 @@ where
 
     match coll.create_index(index, None).await {
         Ok(_) => {}
-        Err(e) => return Err(DB(DBError::MongoQueryError(e))),
+        Err(e) => return Err(DBError::MongoQueryError(e)),
     };
 
     // 생성된 문서를 db에 추가.
@@ -88,7 +90,7 @@ where
             {
                 return Err(MongoDuplicateError(e));
             }
-            return Err(DB(DBError::MongoQueryError(e)));
+            return Err(DBError::MongoQueryError(e));
         }
     };
 
@@ -102,7 +104,7 @@ where
     let doc = match coll.find_one(doc! {"_id": new_id}, None).await {
         Ok(Some(doc)) => doc,
         Ok(None) => return Err(NotFoundError(new_id.to_string())),
-        Err(e) => return Err(DB(DBError::MongoQueryError(e))),
+        Err(e) => return Err(DBError::MongoQueryError(e)),
     };
 
     Ok(MC::convert_doc_to_response(&doc)?)
@@ -122,7 +124,7 @@ where
     let doc = match coll.find_one(doc! {"_id": oid, "user":user}, None).await {
         Ok(Some(doc)) => doc,
         Ok(None) => return Err(NotFoundError(oid.to_string())),
-        Err(e) => return Err(DB(DBError::MongoQueryError(e))),
+        Err(e) => return Err(DBError::MongoQueryError(e)),
     };
 
     Ok(MC::convert_doc_to_response(&doc)?)
@@ -143,7 +145,8 @@ where
 
     let oid = ObjectId::from_str(id).map_err(|e| DBError::MongoGetOidError(e))?;
 
-    let mut update_doc = bson::to_document(body).map_err(|e| DB(DBError::MongoSerializeBsonError(e)))?;
+    let mut update_doc =
+        bson::to_document(body).map_err(|e| DBError::MongoSerializeBsonError(e))?;
     update_doc.insert("updatedAt", Bson::DateTime(Utc::now().into()));
 
     let update = doc! {
@@ -161,17 +164,13 @@ where
     {
         Ok(Some(doc)) => doc,
         Ok(None) => return Err(NotFoundError(oid.to_string())),
-        Err(e) => return Err(DB(DBError::MongoQueryError(e))),
+        Err(e) => return Err(DBError::MongoQueryError(e)),
     };
 
     Ok(MC::convert_doc_to_response(&doc)?)
 }
 
-pub async fn delete<MC:MongoBMC>(
-    db: &Database,
-    id: &str
-) -> Result<()>
-{
+pub async fn delete<MC: MongoBMC>(db: &Database, id: &str) -> Result<()> {
     let doc_coll = db.collection::<Document>(MC::DOC_COLL_NAME);
 
     let oid = ObjectId::from_str(id).map_err(|e| DBError::MongoGetOidError(e))?;
@@ -180,7 +179,7 @@ pub async fn delete<MC:MongoBMC>(
     let result = doc_coll
         .delete_one(filter, None)
         .await
-        .map_err(|e| DB(DBError::MongoQueryError(e)))?;
+        .map_err(|e| DBError::MongoQueryError(e))?;
 
     match result.deleted_count {
         0 => Err(NotFoundError(id.to_string())),
