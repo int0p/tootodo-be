@@ -2,6 +2,8 @@ use chrono::{DateTime, Utc};
 use serde::Serialize;
 use uuid::Uuid;
 
+use super::model::StatusType;
+
 #[derive(Serialize)]
 pub struct GenericResponse {
     pub status: String,
@@ -10,30 +12,30 @@ pub struct GenericResponse {
 
 #[allow(non_snake_case)]
 #[derive(Serialize, Debug)]
-pub struct MemoResponse {
+pub struct HabitResponse {
     pub id: String,
     pub user: Uuid,
-    pub title: String,
-    pub content: String,
-    pub color: String,
+    pub name: String,
+    pub icon: String,
+    pub status: StatusType,
     pub createdAt: DateTime<Utc>,
     pub updatedAt: DateTime<Utc>,
 }
 
 #[derive(Serialize, Debug)]
-pub struct MemoData {
-    pub memo: MemoResponse,
+pub struct HabitData {
+    pub habit: HabitResponse,
 }
 
 #[derive(Serialize, Debug)]
-pub struct SingleMemoResponse {
+pub struct SingleHabitResponse {
     pub status: &'static str,
-    pub data: MemoData,
+    pub data: HabitData,
 }
 
 #[derive(Serialize, Debug)]
-pub struct MemoListResponse {
+pub struct HabitListResponse {
     pub status: &'static str,
     pub results: usize,
-    pub memos: Vec<MemoResponse>,
+    pub habits: Vec<HabitResponse>,
 }

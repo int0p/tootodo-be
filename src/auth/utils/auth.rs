@@ -2,7 +2,10 @@ use std::sync::Arc;
 
 use serde_json::json;
 
-use crate::{auth::{error::Error, model::User, response::FilteredUser}, db, AppState};
+use crate::{
+    auth::{error::Error, model::User, response::FilteredUser},
+    db, AppState,
+};
 
 use super::token::{self, TokenDetails};
 
@@ -67,7 +70,6 @@ pub async fn auth_first(user: User, data: &Arc<AppState>) -> Result<Response<Str
         data.env.refresh_token_private_key.to_owned(),
     )?;
 
-
     /*
     HttpOnly 플래그: 이 플래그를 사용하면 JavaScript를 통한 쿠키의 접근을 차단할 수 있습니다. 따라서 XSS 공격으로부터 토큰을 보호할 수 있습니다. refresh_token은 특히 HttpOnly 플래그를 사용하여 저장해야 합니다.
 
@@ -92,7 +94,6 @@ pub async fn auth_first(user: User, data: &Arc<AppState>) -> Result<Response<Str
     ))
     .path("/")
     .domain(&data.env.domain)
-
     .max_age(time::Duration::minutes(data.env.refresh_token_max_age * 60))
     .same_site(SameSite::Lax)
     .http_only(true)
@@ -170,7 +171,7 @@ pub async fn auth_request(
     Ok(next.run(req).await)
 }
 
-pub fn append_cookies_to_headers(cookies: Vec<Cookie<>>) -> HeaderMap {
+pub fn append_cookies_to_headers(cookies: Vec<Cookie>) -> HeaderMap {
     let mut headers = HeaderMap::new();
     for cookie in cookies {
         headers.append(header::SET_COOKIE, cookie.to_string().parse().unwrap());

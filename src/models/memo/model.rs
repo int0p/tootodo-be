@@ -1,4 +1,3 @@
-
 use chrono::prelude::*;
 use mongodb::bson::{self, oid::ObjectId};
 use serde::{Deserialize, Serialize};
@@ -13,7 +12,7 @@ pub struct MemoModel {
     pub user: Uuid,
     pub title: String,
     pub content: String,
-    pub color:String,
+    pub color: String,
     #[serde(with = "bson::serde_helpers::chrono_datetime_as_bson_datetime")]
     pub createdAt: DateTime<Utc>,
     #[serde(with = "bson::serde_helpers::chrono_datetime_as_bson_datetime")]

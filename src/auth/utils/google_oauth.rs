@@ -46,14 +46,15 @@ pub async fn request_token(
     ];
     let response = client.post(root_url).form(&params).send().await.unwrap();
 
-    
     if response.status().is_success() {
         let oauth_response = response.json::<OAuthResponse>().await.unwrap();
         Ok(oauth_response)
     } else {
-        let error_msg = response.text().await.expect("Error while parsing error message");
+        let error_msg = response
+            .text()
+            .await
+            .expect("Error while parsing error message");
         Err(Error::RetrieveTokenError(error_msg))
-        
     }
 }
 

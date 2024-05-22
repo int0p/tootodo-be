@@ -17,7 +17,7 @@ use chrono::prelude::*;
 use futures::TryStreamExt;
 use mongodb::{
     bson::doc,
-    options::{AggregateOptions, FindOneAndUpdateOptions, UpdateOptions},
+    options::{AggregateOptions, FindOneAndUpdateOptions},
 };
 use mongodb::{bson::Document, Database};
 use mongodb::{
@@ -143,7 +143,8 @@ impl TaskBMC {
                 chat_type: None,
             },
             user,
-        );
+        )
+        .await?;
 
         Ok(SingleTaskResponse {
             status: "success",

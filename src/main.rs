@@ -5,22 +5,24 @@ mod db;
 mod error;
 mod models;
 
+use axum::http::{HeaderMap, Request, Response};
 use axum::{
-    body::Body, http::{
+    body::Body,
+    http::{
         header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE},
         HeaderValue, Method,
-    }, Router
+    },
+    Router,
 };
+use bytes::Bytes;
 use config::Config;
 use db::{MongoDB, DB};
 use dotenv::dotenv;
 use sqlx::{Pool, Postgres};
-use tracing::Span;
 use std::sync::Arc;
-use tower_http::{classify::ServerErrorsFailureClass, cors::CorsLayer, trace::TraceLayer};
-use axum::http::{Request, Response, HeaderMap};
-use bytes::Bytes;
 use std::time::Duration;
+use tower_http::{classify::ServerErrorsFailureClass, cors::CorsLayer, trace::TraceLayer};
+use tracing::Span;
 use utoipa::OpenApi;
 use utoipa::{
     openapi::security::{HttpAuthScheme, HttpBuilder, SecurityScheme},
@@ -83,27 +85,31 @@ async fn main() -> Result<()> {
         .merge(models::memo::create_router(app_state.clone()))
         .merge(models::event::create_router(app_state.clone()))
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
-        .merge(RapiDoc::new("/api-docs/openapi.json").path("/rapidoc"))       
+        .merge(RapiDoc::new("/api-docs/openapi.json").path("/rapidoc"))
         .layer(
             TraceLayer::new_for_http()
-            .make_span_with(|request: &Request<Body>| {
-                tracing::debug_span!("http-request")
-            })
-            .on_request(|request: &Request<Body>, _span: &Span| {
-                tracing::debug!("started {} {}", request.method(), request.uri().path())
-            })
-            .on_response(|response: &Response<Body>, latency: Duration, _span: &Span| {
-                tracing::debug!("response generated in {:?}", latency)
-            })
-            .on_body_chunk(|chunk: &Bytes, latency: Duration, _span: &Span| {
-                tracing::debug!("sending {} bytes", chunk.len())
-            })
-            .on_eos(|trailers: Option<&HeaderMap>, stream_duration: Duration, _span: &Span| {
-                tracing::debug!("stream closed after {:?}", stream_duration)
-            })
-            .on_failure(|error: ServerErrorsFailureClass, latency: Duration, _span: &Span| {
-                tracing::debug!("something went wrong")
-            })
+                .make_span_with(|request: &Request<Body>| tracing::debug_span!("http-request"))
+                .on_request(|request: &Request<Body>, _span: &Span| {
+                    tracing::debug!("started {} {}", request.method(), request.uri().path())
+                })
+                .on_response(
+                    |response: &Response<Body>, latency: Duration, _span: &Span| {
+                        tracing::debug!("response generated in {:?}", latency)
+                    },
+                )
+                .on_body_chunk(|chunk: &Bytes, latency: Duration, _span: &Span| {
+                    tracing::debug!("sending {} bytes", chunk.len())
+                })
+                .on_eos(
+                    |trailers: Option<&HeaderMap>, stream_duration: Duration, _span: &Span| {
+                        tracing::debug!("stream closed after {:?}", stream_duration)
+                    },
+                )
+                .on_failure(
+                    |error: ServerErrorsFailureClass, latency: Duration, _span: &Span| {
+                        tracing::debug!("something went wrong")
+                    },
+                ),
         )
         .layer(cors);
 

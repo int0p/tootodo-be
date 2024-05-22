@@ -1,9 +1,8 @@
 pub mod controller;
 pub mod handler;
 pub mod model;
-pub mod response;
+mod response;
 pub mod schema;
-
 use std::sync::Arc;
 
 use axum::{
@@ -13,20 +12,20 @@ use axum::{
 };
 
 use self::handler::{
-    create_event_handler, delete_event_handler, event_list_handler, get_event_handler,
-    update_event_handler,
+    create_habit_handler, delete_habit_handler, get_habit_handler, habit_list_handler,
+    update_habit_handler,
 };
 use crate::{auth::utils::auth::auth_request, AppState};
 
 pub fn create_router(app_state: Arc<AppState>) -> Router {
     Router::new()
-        .route("/api/events/", post(create_event_handler))
-        .route("/api/events", get(event_list_handler))
+        .route("/api/habits/", post(create_habit_handler))
+        .route("/api/habits", get(habit_list_handler))
         .route(
-            "/api/events/:id",
-            get(get_event_handler)
-                .patch(update_event_handler)
-                .delete(delete_event_handler),
+            "/api/habits/:id",
+            get(get_habit_handler)
+                .patch(update_habit_handler)
+                .delete(delete_habit_handler),
         )
         .layer(middleware::from_fn_with_state(
             app_state.clone(),

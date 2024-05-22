@@ -1,8 +1,9 @@
-pub mod error;  
 pub mod base;
 pub mod base_array;
-pub mod task;
-pub mod event;
-pub mod chat;
-pub mod memo;
 pub mod category;
+pub mod chat;
+pub mod error;
+pub mod event;
+pub mod habit;
+pub mod memo;
+pub mod task;

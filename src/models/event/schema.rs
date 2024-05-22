@@ -1,5 +1,3 @@
-
-
 use chrono::{DateTime, NaiveDate, Utc};
 use serde::{Deserialize, Serialize};
 
@@ -36,7 +34,5 @@ pub struct UpdateEventSchema {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub location: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub chat_type: Option<ChatType>,      
+    pub chat_type: Option<ChatType>,
 }
-
-

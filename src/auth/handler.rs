@@ -1,5 +1,16 @@
 use std::sync::Arc;
 
+use super::{
+    error::{Error, Result},
+    model::{LoginUserSchema, RegisterUserSchema, User},
+    utils::auth::{
+        append_cookies_to_headers, auth_first, filter_user_record, generate_token,
+        JWTAuthMiddleware,
+    },
+    utils::google_oauth::{get_google_user, request_token, QueryCode},
+    utils::token,
+};
+use crate::{db, AppState};
 use argon2::{password_hash::SaltString, Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
 use axum::{
     extract::{Query, State},
@@ -14,17 +25,6 @@ use axum_extra::extract::{
 use rand_core::OsRng;
 use serde_json::json;
 use tracing::info;
-use crate::{db, AppState};
-use super::{
-    error::{Error, Result},
-    model::{LoginUserSchema, RegisterUserSchema, User},
-    utils::auth::{
-        append_cookies_to_headers, auth_first, filter_user_record, generate_token,
-        JWTAuthMiddleware,
-    },
-    utils::google_oauth::{get_google_user, request_token, QueryCode},
-    utils::token,
-};
 
 #[utoipa::path(
     get,
@@ -47,7 +47,6 @@ pub async fn health_checker_handler() -> impl IntoResponse {
 
     Json(json_response)
 }
-
 
 #[utoipa::path(
     post,
@@ -134,15 +133,13 @@ pub async fn login_user_handler(
     }
 
     let is_valid = match user.password.as_ref() {
-        Some(password) => {
-            match PasswordHash::new(password) {
-                Ok(parsed_hash) => Argon2::default()
-                    .verify_password(body.password.as_bytes(), &parsed_hash)
-                    .is_ok(),
-                Err(_) => false,
-            }
+        Some(password) => match PasswordHash::new(password) {
+            Ok(parsed_hash) => Argon2::default()
+                .verify_password(body.password.as_bytes(), &parsed_hash)
+                .is_ok(),
+            Err(_) => false,
         },
-        None => false,  // provider가 google일 땐 pw가 없고, local일 땐 반드시 존재.
+        None => false, // provider가 google일 땐 pw가 없고, local일 땐 반드시 존재.
     };
     if !is_valid {
         return Err(Error::InvalidLoginInfo);
@@ -178,7 +175,7 @@ pub async fn refresh_access_token_handler(
         .fetch_optional(&data.db)
         .await
         .map_err(|e| Error::DB(db::error::Error::FetchError(e)))?;
-    
+
     let user = user.ok_or_else(|| Error::NoUser)?;
 
     let access_token_details = generate_token(
@@ -262,7 +259,7 @@ pub async fn logout_handler(
         .same_site(SameSite::Lax)
         .http_only(true)
         .build();
-    
+
     let refresh_cookie = Cookie::build(("refresh_token", ""))
         .path("/")
         .domain(&data.env.domain)

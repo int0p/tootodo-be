@@ -1,5 +1,3 @@
-
-
 #[derive(Debug, Clone)]
 pub struct Config {
     pub database_url: String,
@@ -7,7 +5,7 @@ pub struct Config {
     pub domain: String,
 
     pub mongodb_url: String,
-    pub mongodb_test_url:String,
+    pub mongodb_test_url: String,
     pub mongo_initdb_db: String,
     pub mongo_test_db: String,
     pub mongo_collection_note: String,

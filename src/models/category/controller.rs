@@ -32,9 +32,9 @@ impl MongoBMC for CategoryBMC {
         let category_response = CategoryResponse {
             user: category.user,
             id: category.id.to_hex(),
-            name: category.name,
-            color: category.color,
-            properties: category.properties,
+            name: category.name.to_owned(),
+            color: category.color.to_owned(),
+            properties: category.properties.to_owned(),
             createdAt: category.createdAt,
             updatedAt: category.updatedAt,
         };

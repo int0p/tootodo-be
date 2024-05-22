@@ -11,7 +11,7 @@ use crate::{db, error::ErrorResponse};
 
 pub type Result<T> = core::result::Result<T, Error>;
 
-#[derive(Debug,ToSchema)]
+#[derive(Debug, ToSchema)]
 pub enum Error {
     DB(db::error::Error),
     //auth
@@ -37,14 +37,14 @@ impl IntoResponse for Error {
     fn into_response(self) -> Response {
         let (status, error_response) = match self {
             Error::DB(e) => {
-                return e.into_response();            
-            },
+                return e.into_response();
+            }
             Error::VerifyTokenError(e) => (
                 StatusCode::UNAUTHORIZED,
                 ErrorResponse {
                     status: "fail".to_string(),
                     message: format!("Error verifying token: {}", e),
-                }
+                },
             ),
             Error::NoAccessToken => (
                 StatusCode::UNAUTHORIZED,
@@ -53,7 +53,7 @@ impl IntoResponse for Error {
                     message: "No access token provided".to_string(),
                 },
             ),
-            
+
             Error::CannotHashPassword(e) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 ErrorResponse {
@@ -109,7 +109,7 @@ impl IntoResponse for Error {
                     status: "fail".to_string(),
                     message: "Token is invalid or session has expired".to_string(),
                 },
-            ),           
+            ),
             Error::NoUser => (
                 StatusCode::NOT_FOUND,
                 ErrorResponse {
@@ -123,7 +123,7 @@ impl IntoResponse for Error {
                     status: "fail".to_string(),
                     message: "Authorization code not provided!".to_string(),
                 },
-            ),            
+            ),
             Error::RetrieveTokenError(e) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 ErrorResponse {
@@ -135,7 +135,8 @@ impl IntoResponse for Error {
                 StatusCode::INTERNAL_SERVER_ERROR,
                 ErrorResponse {
                     status: "fail".to_string(),
-                    message: "An error occurred while trying to retrieve user information.".to_string(),
+                    message: "An error occurred while trying to retrieve user information."
+                        .to_string(),
                 },
             ),
             Error::TokenResponseError(e) => (
