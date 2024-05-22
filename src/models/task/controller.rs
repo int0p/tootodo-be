@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 use super::{
-    model::{PropertyValue, PropertyValueData, TaskModel},
+    model::{BlockModel, PropertyValue, PropertyValueData, TaskModel},
     response::{SingleTaskResponse, TaskData, TaskListResponse, TaskResponse},
     schema::{CreateTaskSchema, UpdateTaskSchema},
 };
@@ -14,9 +14,10 @@ use crate::{
     },
 };
 use chrono::prelude::*;
+use futures::TryStreamExt;
 use mongodb::{
     bson::doc,
-    options::{FindOneAndUpdateOptions, UpdateOptions},
+    options::{AggregateOptions, FindOneAndUpdateOptions, UpdateOptions},
 };
 use mongodb::{bson::Document, Database};
 use mongodb::{
@@ -37,18 +38,20 @@ impl MongoBMC for TaskBMC {
 
     fn convert_doc_to_response(task: &TaskModel) -> Result<TaskResponse> {
         let task_response = TaskResponse {
-            user: task.user,
             id: task.id.to_hex(),
+            user: task.user,
             title: task.title.to_owned(),
             start_date: task.start_date.to_owned(),
             due_at: task.due_at.to_owned(),
-            chat_type: task.chat_type.to_owned(),
-            chat_msgs: task.chat_msgs.to_owned(),
-            category: task.category.to_owned(),
-            proerties: task.proerties.to_owned(),
+            category_id: task.category_id.to_owned(),
+            category_color: task.category_color.to_owned(),
+            category_name: task.category_name.to_owned(),
+            proerties: task.properties.to_owned(),
+            blocks: task.blocks.to_owned(),
             subtasks: task.subtasks.to_owned(),
             parent_id: task.parent_id.to_owned(),
-            blocks: task.blocks.to_owned(),
+            chat_type: task.chat_type.to_owned(),
+            chat_msgs: task.chat_msgs.to_owned(),
             createdAt: task.createdAt,
             updatedAt: task.updatedAt,
         };
@@ -109,7 +112,7 @@ impl TaskBMC {
         // Property 정보 추가.
         let category_collection = db.collection::<CategoryModel>("categories");
         let category = category_collection
-            .find_one(doc! { "_id": task_result.category.id }, None)
+            .find_one(doc! { "_id": task_result.category_id }, None)
             .await
             .expect("Failed to fetch category")
             .expect("Category not found");
@@ -263,5 +266,102 @@ impl TaskBMC {
 
     pub async fn delete_task(db: &Database, id: &str) -> Result<()> {
         base::delete::<Self>(db, id).await
+    }
+
+    pub async fn add_subtask(
+        self,
+        db: &Database,
+        id: &str,
+        user: &Uuid,
+    ) -> Result<SingleTaskResponse> {
+        // Parse the task id
+        let task_oid = ObjectId::from_str(id).map_err(|e| DBError::MongoGetOidError(e))?;
+
+        // Retrieve the original task
+        let coll = db.collection::<TaskModel>("tasks");
+        let mut original_task = match coll
+            .find_one(doc! { "_id": &task_oid, "user": user }, None)
+            .await
+        {
+            Ok(Some(doc)) => doc,
+            Ok(None) => return Err(NotFoundError(task_oid.to_string())),
+            Err(e) => return Err(DB(DBError::MongoQueryError(e))),
+        };
+
+        // Add the new subtask to the original task's subtasks
+        original_task
+            .subtasks
+            .push(TaskModel::new_subtask(&original_task));
+
+        // Serialize the subtasks
+        let subtasks_bson = bson::to_bson(&original_task.subtasks)
+            .map_err(|e| DB(DBError::MongoSerializeBsonError(e)))?;
+
+        // Update the original task in the database
+        coll.update_one(
+            doc! { "_id": &task_oid, "user": user },
+            doc! { "$set": { "subtasks": subtasks_bson }},
+            None,
+        )
+        .await?;
+
+        // convert doc to response
+        let task_result = Self::convert_doc_to_response(&original_task)?;
+
+        // Return the updated task
+        Ok(SingleTaskResponse {
+            status: "success",
+            data: TaskData { task: task_result },
+        })
+    }
+
+    pub async fn get_task_with_subtasks(
+        db: &Database,
+        id: &str,
+        user: &Uuid,
+    ) -> Result<SingleTaskResponse> {
+        // Parse the task id
+        let task_oid = ObjectId::from_str(id).map_err(|e| DBError::MongoGetOidError(e))?;
+
+        // Define the aggregation pipeline
+        let pipeline = vec![
+            doc! { "$match": { "_id": &task_oid, "user": user }},
+            doc! {
+                "$graphLookup": {
+                    "from": "tasks",
+                    "startWith": "$_id",
+                    "connectFromField": "_id",
+                    "connectToField": "parent_id",
+                    "as": "subtasks",
+                    "maxDepth": 5,
+                    "depthField": "depth"
+                }
+            },
+        ];
+
+        let options = AggregateOptions::builder().allow_disk_use(true).build();
+        let tasks_collection = db.collection::<TaskModel>("tasks");
+        let mut cursor = tasks_collection.aggregate(pipeline, options).await?;
+        let mut tasks = Vec::new();
+
+        while let Some(result) = cursor.try_next().await? {
+            tasks.push(bson::from_document::<TaskModel>(result).map_err(|e| e));
+        }
+
+        // Assuming there's only one task matched, as we queried by _id
+        let updated_task = match tasks.into_iter().next() {
+            Some(Ok(task)) => task,
+            Some(Err(e)) => return Err(DB(DBError::MongoDeserializeBsonError(e))),
+            None => return Err(NotFoundError(task_oid.to_string())),
+        };
+
+        // convert doc to response
+        let task_result = Self::convert_doc_to_response(&updated_task)?;
+
+        // Return the updated task
+        Ok(SingleTaskResponse {
+            status: "success",
+            data: TaskData { task: task_result },
+        })
     }
 }

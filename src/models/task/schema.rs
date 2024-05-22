@@ -1,7 +1,7 @@
 use super::model::*;
 use crate::models::{
     category::model::{PropertyModel, PropertyType},
-    chat::model::ChatModel,
+    chat::model::{ChatModel, ChatType},
 };
 use chrono::{DateTime, NaiveDate, Utc};
 use mongodb::bson::{self, oid::ObjectId};
@@ -13,14 +13,15 @@ use uuid::Uuid;
 pub struct CreateTaskSchema {
     pub user: Uuid,
     pub title: String,
-    pub display: bool,
     pub category: ObjectId,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub subtask: Option<Vec<TaskModel>>,
+    pub subtasks: Option<Vec<TaskModel>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub task_blocks: Option<Vec<BlockModel>>,
+    pub parent_id: Option<ObjectId>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub chat: Option<ChatModel>,
+    pub blocks: Option<Vec<BlockModel>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub chat_type: Option<ChatType>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

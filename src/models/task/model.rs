@@ -18,7 +18,9 @@ pub struct TaskModel {
     pub start_date: Option<NaiveDate>,
     pub due_at: Option<DateTime<Utc>>,
 
-    pub category: CategoryModel,
+    pub category_id: ObjectId,
+    pub category_color: String,
+    pub category_name: String,
     pub properties: Vec<PropertyValue>,
 
     pub blocks: Vec<BlockModel>,
@@ -36,6 +38,28 @@ pub struct TaskModel {
     pub updatedAt: DateTime<Utc>,
 }
 
+impl TaskModel {
+    pub fn new_subtask(original_task: &Self) -> Self {
+        Self {
+            id: ObjectId::new(),
+            user: original_task.user,
+            title: "New Subtask".to_string(),
+            start_date: Some(Utc::now().date_naive()),
+            due_at: None,
+            category_id: original_task.category_id,
+            category_color: original_task.category_color.clone(),
+            category_name: original_task.category_name.clone(),
+            properties: original_task.properties.clone(),
+            blocks: vec![BlockModel::new(original_task.id.clone())],
+            subtasks: vec![],
+            parent_id: Some(original_task.id),
+            chat_type: original_task.chat_type.clone(),
+            chat_msgs: original_task.chat_msgs.clone(),
+            createdAt: Utc::now(),
+            updatedAt: Utc::now(),
+        }
+    }
+}
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct PropertyValue {
     pub prop_id: ObjectId,
@@ -92,6 +116,17 @@ pub struct BlockModel {
     pub src_task_id: ObjectId,
     pub block_type: BlockType,
     pub body: String,
+}
+
+impl BlockModel {
+    pub fn new(src_id: ObjectId) -> Self {
+        Self {
+            id: ObjectId::new(),
+            src_task_id: src_id,
+            block_type: BlockType::Editor,
+            body: "".to_string(),
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

@@ -20,20 +20,21 @@ pub struct TaskResponse {
     pub id: String,
     pub user: Uuid,
     pub title: String,
-
-    pub chat_type: ChatType,
-    pub chat_msgs: Option<Vec<MsgModel>>,
-
     pub start_date: Option<NaiveDate>,
     pub due_at: Option<DateTime<Utc>>,
 
-    pub category: CategoryModel,
-    pub proerties: Option<Vec<PropertyValue>>,
+    pub category_id: ObjectId,
+    pub category_color: String,
+    pub category_name: String,
+    pub proerties: Vec<PropertyValue>,
 
-    pub subtasks: Option<Vec<TaskModel>>,
+    pub blocks: Vec<BlockModel>,
+
+    pub subtasks: Vec<TaskModel>,
     pub parent_id: Option<ObjectId>,
 
-    pub blocks: Option<Vec<BlockModel>>,
+    pub chat_type: ChatType,
+    pub chat_msgs: Option<Vec<MsgModel>>,
 
     pub createdAt: DateTime<Utc>,
     pub updatedAt: DateTime<Utc>,
