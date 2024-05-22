@@ -1,13 +1,12 @@
 pub mod error;
 use crate::config::{self, Config};
-use mongodb::bson::Document;
+use error::{Error, Result};
 use mongodb::Database;
-use mongodb::{options::ClientOptions, Client, Collection};
+use mongodb::{options::ClientOptions, Client};
 use sqlx::postgres::PgPoolOptions;
 use sqlx::{Pool, Postgres};
-use error::{Error,Result};
 
-pub struct DB{
+pub struct DB {
     pub db: Pool<Postgres>,
 }
 
@@ -15,28 +14,28 @@ impl DB {
     pub async fn init() -> Result<Self> {
         let config = Config::init();
         let pool = match PgPoolOptions::new()
-        .max_connections(10)
-        .connect(&config.database_url)
-        .await
-    {
-        Ok(pool) => {
-            println!("✅ Connection to the database is successful!");
-            pool
-        }
-        Err(e) => {
-            Error::FailToCreatePool(e.to_string());
-            std::process::exit(1);
-        }
-    };
+            .max_connections(10)
+            .connect(&config.database_url)
+            .await
+        {
+            Ok(pool) => {
+                println!("✅ Connection to the database is successful!");
+                pool
+            }
+            Err(e) => {
+                Error::FailToCreatePool(e.to_string());
+                std::process::exit(1);
+            }
+        };
 
-    match sqlx::migrate!("./migrations").run(&pool).await {
-        Ok(_) => println!("✅ Migrations executed successfully."),
-        Err(e) => {Error::MigrationError(e.to_string());},
-    };
+        match sqlx::migrate!("./migrations").run(&pool).await {
+            Ok(_) => println!("✅ Migrations executed successfully."),
+            Err(e) => {
+                Error::MigrationError(e.to_string());
+            }
+        };
 
-    Ok(Self {
-        db: pool
-    })
+        Ok(Self { db: pool })
     }
 }
 
@@ -46,13 +45,14 @@ pub struct MongoDB {
 }
 
 impl MongoDB {
-    
     pub async fn init() -> Result<Self> {
         let config = Config::init();
         let mongodb_uri = config.mongodb_url;
         let database_name = config.mongo_initdb_db;
 
-        let mut client_options = ClientOptions::parse(mongodb_uri).await.map_err(Error::MongoError)?;
+        let mut client_options = ClientOptions::parse(mongodb_uri)
+            .await
+            .map_err(Error::MongoError)?;
         client_options.app_name = Some(database_name.to_string());
 
         let client = Client::with_options(client_options).map_err(Error::MongoError)?;
@@ -65,17 +65,17 @@ impl MongoDB {
 
         println!("✅ Mongo Database connected successfully");
 
-        Ok(Self {
-            db,
-        })
+        Ok(Self { db })
     }
 
-    pub async fn init_test() -> Result<Self>{
+    pub async fn init_test() -> Result<Self> {
         let config = Config::init();
         let mongodb_url = config.mongodb_test_url;
         let database_name = config.mongo_test_db;
 
-        let mut client_options = ClientOptions::parse(mongodb_url).await.map_err(Error::MongoError)?;
+        let mut client_options = ClientOptions::parse(mongodb_url)
+            .await
+            .map_err(Error::MongoError)?;
         client_options.app_name = Some(database_name.to_string());
 
         let client = Client::with_options(client_options).map_err(Error::MongoError)?;
@@ -83,8 +83,6 @@ impl MongoDB {
 
         // println!("✅ Mongo <Test> Database connected successfully");
 
-        Ok(Self {
-            db
-        })
+        Ok(Self { db })
     }
 }

@@ -8,10 +8,9 @@ use crate::{
     models::base::{self, MongoBMC},
     models::error::{Error::*, Result},
 };
-use axum::Json;
 use chrono::prelude::*;
 use mongodb::bson;
-use mongodb::bson::{doc, oid::ObjectId};
+use mongodb::bson::doc;
 use mongodb::{bson::Document, Database};
 use serde::Serialize;
 use uuid::Uuid;
@@ -130,7 +129,7 @@ mod tests {
     use super::*;
     use crate::db::MongoDB;
     use dotenv::dotenv;
-    use mongodb::options::UpdateOptions;
+    use mongodb::{bson::oid::ObjectId, options::UpdateOptions};
 
     async fn setup() -> Database {
         dotenv().ok();
@@ -245,18 +244,19 @@ mod tests {
         let body = UpdateMemoSchema {
             title: Some("Updated Title".to_string()),
             content: None, // No change to content
-            color:Some("#10b981".to_string()),
+            color: Some("#10b981".to_string()),
         };
 
-        let res =  MemoBMC::update_memo(&db, memo_id, &body, &user_id).await;
+        let res = MemoBMC::update_memo(&db, memo_id, &body, &user_id).await;
         claim::assert_ok!(&res);
         let res = res.unwrap();
         claim::assert_matches!(res.status, "success");
         assert_eq!(res.data.memo.title, body.title.unwrap());
-        if let Some(content) = body.content{
-            assert_eq!(res.data.memo.content, content);            
-        } 
-        else {dbg!(res.data.memo.content);} //기존값 유지
+        if let Some(content) = body.content {
+            assert_eq!(res.data.memo.content, content);
+        } else {
+            dbg!(res.data.memo.content);
+        } //기존값 유지
     }
 
     #[tokio::test]

@@ -1,6 +1,4 @@
-use chrono::{DateTime, NaiveDate, Utc};
-use crate::models::chat::model::{ChatModel, ChatType, MsgModel};
-use std::time::Duration;
+use chrono::{DateTime, Utc};
 use serde::Serialize;
 use uuid::Uuid;
 
@@ -16,16 +14,16 @@ pub struct GenericResponse {
 #[derive(Serialize, Debug)]
 pub struct CategoryResponse {
     pub id: String,
-    pub user:Uuid,
-    pub name:String,
-    pub color:String,
+    pub user: Uuid,
+    pub name: String,
+    pub color: String,
     pub properties: Vec<PropertyModel>,
     pub createdAt: DateTime<Utc>,
     pub updatedAt: DateTime<Utc>,
 }
 
 #[derive(Serialize, Debug)]
-pub struct CategoryData {    
+pub struct CategoryData {
     pub category: CategoryResponse,
 }
 

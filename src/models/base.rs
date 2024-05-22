@@ -2,9 +2,7 @@ use chrono::Utc;
 use futures::StreamExt;
 use mongodb::bson::{doc, oid::ObjectId};
 use mongodb::bson::{Bson, Document};
-use mongodb::options::{
-    DeleteOptions, FindOneAndUpdateOptions, FindOptions, IndexOptions, ReturnDocument,
-};
+use mongodb::options::{FindOneAndUpdateOptions, FindOptions, IndexOptions, ReturnDocument};
 use mongodb::{bson, Database, IndexModel};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
@@ -78,7 +76,7 @@ where
 
     match coll.create_index(index, None).await {
         Ok(_) => {}
-        Err(e) => return Err(DBError::MongoQueryError(e)),
+        Err(e) => return Err(DB(DBError::MongoQueryError(e))),
     };
 
     // 생성된 문서를 db에 추가.
@@ -90,7 +88,7 @@ where
             {
                 return Err(MongoDuplicateError(e));
             }
-            return Err(DBError::MongoQueryError(e));
+            return Err(DB(DBError::MongoQueryError(e)));
         }
     };
 
@@ -104,7 +102,7 @@ where
     let doc = match coll.find_one(doc! {"_id": new_id}, None).await {
         Ok(Some(doc)) => doc,
         Ok(None) => return Err(NotFoundError(new_id.to_string())),
-        Err(e) => return Err(DBError::MongoQueryError(e)),
+        Err(e) => return Err(DB(DBError::MongoQueryError(e))),
     };
 
     Ok(MC::convert_doc_to_response(&doc)?)
@@ -124,7 +122,7 @@ where
     let doc = match coll.find_one(doc! {"_id": oid, "user":user}, None).await {
         Ok(Some(doc)) => doc,
         Ok(None) => return Err(NotFoundError(oid.to_string())),
-        Err(e) => return Err(DBError::MongoQueryError(e)),
+        Err(e) => return Err(DB(DBError::MongoQueryError(e))),
     };
 
     Ok(MC::convert_doc_to_response(&doc)?)
@@ -164,7 +162,7 @@ where
     {
         Ok(Some(doc)) => doc,
         Ok(None) => return Err(NotFoundError(oid.to_string())),
-        Err(e) => return Err(DBError::MongoQueryError(e)),
+        Err(e) => return Err(DB(DBError::MongoQueryError(e))),
     };
 
     Ok(MC::convert_doc_to_response(&doc)?)

@@ -1,9 +1,5 @@
-
-use std::time::Duration;
-
-use mongodb::bson::{self, oid::ObjectId};
-use serde::{Deserialize, Serialize};
 use super::model::*;
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct UpdateChatSchema {
@@ -32,7 +28,7 @@ pub struct UpdateMsgSchema {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub content: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub booked: Option<bool>
+    pub booked: Option<bool>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

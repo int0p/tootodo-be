@@ -1,6 +1,7 @@
 use crate::db::error::Error as DBError;
 use crate::models::error::{Error::*, Result};
 use chrono::Utc;
+use mongodb::bson::Document;
 use mongodb::bson::{self, doc, oid::ObjectId, Bson};
 use mongodb::{options::FindOneAndUpdateOptions, options::ReturnDocument, Database};
 use serde::de::DeserializeOwned;
@@ -15,6 +16,44 @@ pub trait MongoArrayBMC {
     const ARR_NAME: &'static str;
 }
 
+pub async fn get_elem<MC>(db: &Database, src_id: &str, elem_id: &str) -> Result<MC::ElemModel>
+where
+    MC: MongoArrayBMC,
+    MC::CollModel: DeserializeOwned + Unpin + Send + Sync,
+{
+    let doc_coll = db.collection::<Document>(MC::COLL_NAME);
+
+    let oid = ObjectId::from_str(src_id).map_err(|e| DBError::MongoGetOidError(e))?;
+    let elem_oid = ObjectId::from_str(elem_id).map_err(|e| DBError::MongoGetOidError(e))?;
+
+    // Find array
+    let doc = match doc_coll.find_one(doc! { "_id": oid }, None).await {
+        Ok(Some(doc)) => doc,
+        Ok(None) => return Err(NotFoundError(oid.to_string())),
+        Err(e) => return Err(DB(DBError::MongoQueryError(e))),
+    };
+
+    let array = doc
+        .get_array(MC::ARR_NAME)
+        .map_err(|e| DBError::MongoDataError(e))?;
+
+    // Find the specific element by ID within the array
+    for elem_bson in array {
+        match elem_bson.as_document() {
+            Some(doc) => match doc.get_object_id("_id") {
+                Ok(id) if id == elem_oid => {
+                    let elem: MC::ElemModel = bson::from_bson(Bson::Document(doc.clone()))
+                        .map_err(|e| DBError::MongoDeserializeBsonError(e))?;
+                    return Ok(elem);
+                }
+                _ => continue,
+            },
+            None => continue,
+        }
+    }
+
+    Err(NotFoundError(elem_oid.to_string()))
+}
 pub async fn add_elem<MC>(
     db: &Database,
     src_id: &str,

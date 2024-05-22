@@ -63,6 +63,11 @@ impl<Model> ChatMsgBMC<Model>
 where
     Model: HasChatMsgs + DeserializeOwned + Unpin + Send + Sync + CollInfo,
 {
+    pub async fn get_msg(db: &Database, src_id: &str, msg_id: &str) -> Result<MsgModel> {
+        let doc: MsgModel = base_array::get_elem::<Self>(db, src_id, msg_id).await?;
+        Ok(doc)
+    }
+
     pub async fn add_msg(db: &Database, src_id: &str, new_msg: &MsgModel) -> Result<Vec<MsgModel>> {
         let doc: Model = base_array::add_elem::<Self>(db, src_id, new_msg).await?;
         Ok(doc.msgs().unwrap_or_default())
@@ -166,11 +171,44 @@ mod tests {
         result.inserted_id.as_object_id().unwrap().to_hex()
     }
 
+    async fn get_fake_msg_id(db: &Database, src_id: &str) -> String {
+        let coll = db.collection::<EventModel>("events");
+
+        let oid = ObjectId::from_str(src_id).unwrap();
+
+        let new_msg = MsgModel {
+            id: ObjectId::new(),
+            msg_type: MsgType::Text,
+            content: "fake 새로운 메세지".to_string(),
+            created_at: Utc::now(),
+            booked: false,
+            chat: None,
+        };
+
+        let update_doc = doc! {
+            "$push": { "chat_msgs": bson::to_bson(&new_msg).unwrap() },
+            "$set": { "updatedAt": Bson::DateTime(Utc::now().into()) }
+        };
+
+        let options = FindOneAndUpdateOptions::builder()
+            .return_document(ReturnDocument::After)
+            .build();
+
+        let doc = coll
+            .find_one_and_update(doc! {"_id": oid}, update_doc, options)
+            .await
+            .unwrap()
+            .unwrap();
+
+        doc.msgs().unwrap().last().unwrap().id.to_hex()
+    }
+
     #[tokio::test]
     async fn test_add_msg() -> Result<()> {
         let db = get_test_db().await;
         let src_id = get_fake_src_id().await;
         let new_msg = MsgModel {
+            id: ObjectId::new(),
             msg_type: MsgType::Text,
             content: "배고파요".to_string(),
             created_at: Utc::now(),
@@ -196,14 +234,18 @@ mod tests {
     async fn test_remove_msg() -> Result<()> {
         let db = get_test_db().await;
         let src_id = get_fake_src_id().await;
-        let result = ChatMsgBMC::<EventModel>::remove_msg(&db, &src_id, "some_msg_id").await?;
-        assert!(!result.iter().any(|msg| msg.id == "some_msg_id"));
+        let msg_id = get_fake_msg_id(&db, &src_id).await;
+        let result = ChatMsgBMC::<EventModel>::remove_msg(&db, &src_id, &msg_id).await?;
+
+        assert!(!result.iter().any(|msg| msg.id.to_hex() == msg_id));
         Ok(())
     }
 
     #[tokio::test]
     async fn test_update_msg() -> Result<()> {
         let db = get_test_db().await;
+        let src_id = get_fake_src_id().await;
+        let msg_id = get_fake_msg_id(&db, &src_id).await;
         let update_msg = UpdateMsgSchema {
             msg_type: todo!(),
             content: todo!(),
@@ -211,8 +253,7 @@ mod tests {
         };
 
         let result =
-            ChatMsgBMC::<EventModel>::update_msg(&db, "some_src_id", "some_msg_id", &update_msg)
-                .await?;
+            ChatMsgBMC::<EventModel>::update_msg(&db, &src_id, &msg_id, &update_msg).await?;
         // assert based on the expected outcome of the update
         Ok(())
     }
@@ -220,7 +261,8 @@ mod tests {
     #[tokio::test]
     async fn test_add_chat_to_msg() -> Result<()> {
         let db = get_test_db().await;
-
+        let src_id = get_fake_src_id().await;
+        let msg_id = get_fake_msg_id(&db, &src_id).await;
         let result =
             ChatMsgBMC::<EventModel>::add_chat_to_msg(&db, "some_src_id", "some_msg_id").await?;
         // assert based on the expected outcome of adding chat to message

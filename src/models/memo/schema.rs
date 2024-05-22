@@ -1,8 +1,5 @@
-
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-use super::model::*;
-
 
 // Memo
 #[derive(Serialize, Deserialize, Debug)]

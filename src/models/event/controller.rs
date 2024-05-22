@@ -12,7 +12,7 @@ use crate::{
 };
 use chrono::prelude::*;
 use mongodb::bson;
-use mongodb::bson::{doc, oid::ObjectId};
+use mongodb::bson::doc;
 use mongodb::{bson::Document, Database};
 use serde::Serialize;
 use uuid::Uuid;
@@ -151,7 +151,7 @@ mod tests {
         models::chat::model::{ChatType, MsgModel, MsgType},
     };
     use dotenv::dotenv;
-    use mongodb::options::UpdateOptions;
+    use mongodb::{bson::oid::ObjectId, options::UpdateOptions};
     use std::str::FromStr;
 
     async fn setup() -> Database {
@@ -182,6 +182,7 @@ mod tests {
                 complete: true,
                 chat_type: ChatType::Event,
                 chat_msgs: Some(vec![MsgModel {
+                    id: ObjectId::new(),
                     msg_type: MsgType::Ask,
                     content: "기술스택 토론 예정".to_string(),
                     created_at: Utc::now(),

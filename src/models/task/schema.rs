@@ -1,9 +1,12 @@
-
+use super::model::*;
+use crate::models::{
+    category::model::{PropertyModel, PropertyType},
+    chat::model::ChatModel,
+};
+use chrono::{DateTime, NaiveDate, Utc};
 use mongodb::bson::{self, oid::ObjectId};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-use super::model::*;
-use crate::models::chat::model::ChatModel;
 
 // task
 #[derive(Serialize, Deserialize, Debug)]
@@ -11,10 +14,7 @@ pub struct CreateTaskSchema {
     pub user: Uuid,
     pub title: String,
     pub display: bool,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub category: Option<ObjectId>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub properties: Option<Vec<Property>>,
+    pub category: ObjectId,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub subtask: Option<Vec<TaskModel>>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -25,23 +25,25 @@ pub struct CreateTaskSchema {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct UpdateTaskSchema {
-    pub user: Uuid,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub display: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub category: Option<ObjectId>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub properties: Option<Vec<Property>>,
+    pub start_date: Option<NaiveDate>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub subtask: Option<Vec<TaskModel>>,
+    pub due_at: Option<DateTime<Utc>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub task_blocks: Option<Vec<BlockModel>>,
+    pub properties: Option<Vec<PropertyValue>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub chat: Option<ChatModel>,
+    pub parent_id: Option<ObjectId>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub subtasks: Option<Vec<TaskModel>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub blocks: Option<Vec<BlockModel>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub chat_type: Option<ChatType>,
 }
-
 
 // category
 #[derive(Serialize, Deserialize, Debug)]
@@ -95,7 +97,6 @@ pub struct FilterPropertySchema {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
 }
-
 
 // block
 #[derive(Serialize, Deserialize, Debug)]

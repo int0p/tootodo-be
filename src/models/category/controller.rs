@@ -106,22 +106,6 @@ impl CategoryBMC {
         })
     }
 
-    pub async fn create_property(
-        db: &Database,
-        category_id: &str,
-        body: &PropertyModel,
-        user: &Uuid,
-    ) -> Result<SingleCategoryResponse> {
-        // todo: category_id으로 category를 찾고, category의 properties배열에 입력받은 body를 추가하는 함수
-
-        Ok(SingleCategoryResponse {
-            status: "success",
-            data: CategoryData {
-                category: category_result,
-            },
-        })
-    }
-
     pub async fn get_category(
         db: &Database,
         id: &str,
@@ -358,7 +342,7 @@ mod tests {
         claim::assert_ok!(&res);
         let res = res.unwrap();
         claim::assert_matches!(res.status, "success");
-        assert_eq!(res.data.category.title, body.name);
+        assert_eq!(res.data.category.name, body.name);
     }
 
     #[tokio::test]
@@ -402,7 +386,7 @@ mod tests {
         claim::assert_ok!(&res);
         let res = res.unwrap();
         claim::assert_matches!(res.status, "success");
-        assert_eq!(res.data.category.title, body.title.unwrap());
+        assert_eq!(res.data.category.name, body.name.unwrap());
         // if let Some(content) = body.content{
         //     assert_eq!(res.data.category.content, content);
         // }

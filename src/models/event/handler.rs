@@ -14,7 +14,7 @@ use super::{
 
 use crate::{
     auth::utils::auth::JWTAuthMiddleware,
-    models::{chat::controller::ChatMsgBMC, error::{Error, Result}},
+    models::error::{Error, Result},
     AppState,
 };
 
@@ -28,7 +28,7 @@ pub async fn event_list_handler(
     let limit = opts.limit.unwrap_or(10) as i64;
     let page = opts.page.unwrap_or(1) as i64;
 
-       match EventBMC::fetch_events(&app_state.mongodb.db, limit, page, &jwtauth.user.id)
+    match EventBMC::fetch_events(&app_state.mongodb.db, limit, page, &jwtauth.user.id)
         .await
         .map_err(Error::from)
     {

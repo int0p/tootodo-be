@@ -1,9 +1,13 @@
-use axum::{http::StatusCode, response::{IntoResponse, Response}, Json};
 use crate::error::ErrorResponse;
+use axum::{
+    http::StatusCode,
+    response::{IntoResponse, Response},
+    Json,
+};
 use derive_more::From;
 
 pub type Result<T> = core::result::Result<T, Error>;
-#[derive(Debug,From)]
+#[derive(Debug, From)]
 pub enum Error {
     // postgresql
     FailToCreatePool(String),
@@ -23,6 +27,8 @@ pub enum Error {
     MongoSerializeBsonError(mongodb::bson::ser::Error),
     #[from]
     MongoDataError(mongodb::bson::document::ValueAccessError),
+    #[from]
+    MongoDeserializeBsonError(mongodb::bson::de::Error),
 }
 
 impl IntoResponse for Error {
@@ -55,7 +61,7 @@ impl IntoResponse for Error {
                     status: "error".to_string(),
                     message: format!("Error executing migrations: {}", e),
                 },
-            ),            
+            ),
             Error::FetchError(e) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 ErrorResponse {
@@ -86,6 +92,13 @@ impl IntoResponse for Error {
                 },
             ),
             Error::MongoSerializeBsonError(e) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                ErrorResponse {
+                    status: "error".to_string(),
+                    message: format!("MongoDB error: {}", e),
+                },
+            ),
+            Error::MongoDeserializeBsonError(e) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 ErrorResponse {
                     status: "error".to_string(),

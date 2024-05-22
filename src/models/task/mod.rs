@@ -1,3 +1,4 @@
+mod block;
 pub mod controller;
 pub mod handler;
 pub mod model;
