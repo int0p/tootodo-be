@@ -4,7 +4,8 @@ use serde_json::json;
 
 use crate::{
     auth::{error::Error, model::User, response::FilteredUser},
-    db, AppState,
+    infra::db,
+    AppState,
 };
 
 use super::token::{self, TokenDetails};
@@ -53,8 +54,7 @@ pub fn generate_token(
     max_age: i64,
     private_key: String,
 ) -> Result<TokenDetails, Error> {
-    token::generate_jwt_token(user_id, max_age, private_key)
-        .map_err(|e| Error::GenerateTokenError(e))
+    token::generate_jwt_token(user_id, max_age, private_key).map_err(Error::GenerateTokenError)
 }
 
 //사용자 인증을 위해 새로운 토큰을 생성하고, 이를 레디스에 저장한 후 쿠키를 생성하고 응답에 추가

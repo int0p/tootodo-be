@@ -1,9 +1,12 @@
+#![allow(dead_code)]
+
 mod auth;
 mod config;
 mod ctx;
-mod db;
+mod domain;
 mod error;
-mod models;
+mod infra;
+mod interface;
 
 use axum::http::{HeaderMap, Request, Response};
 use axum::{
@@ -16,8 +19,8 @@ use axum::{
 };
 use bytes::Bytes;
 use config::Config;
-use db::{MongoDB, DB};
 use dotenv::dotenv;
+use infra::db::{MongoDB, DB};
 use sqlx::{Pool, Postgres};
 use std::sync::Arc;
 use std::time::Duration;
@@ -59,10 +62,10 @@ async fn main() -> Result<()> {
     let origins = [
         "https://tootodo.life"
             .parse::<HeaderValue>()
-            .map_err(|e| Error::HeaderError(e))?,
+            .map_err(Error::HeaderError)?,
         "http://localhost:5173"
             .parse::<HeaderValue>()
-            .map_err(|e| Error::HeaderError(e))?,
+            .map_err(Error::HeaderError)?,
     ];
 
     let cors = CorsLayer::new()
@@ -82,31 +85,30 @@ async fn main() -> Result<()> {
     });
     let app = Router::new()
         .merge(auth::create_router(app_state.clone()))
-        .merge(models::memo::create_router(app_state.clone()))
-        .merge(models::event::create_router(app_state.clone()))
+        .merge(interface::route::create_router(app_state.clone()))
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .merge(RapiDoc::new("/api-docs/openapi.json").path("/rapidoc"))
         .layer(
             TraceLayer::new_for_http()
-                .make_span_with(|request: &Request<Body>| tracing::debug_span!("http-request"))
+                .make_span_with(|_request: &Request<Body>| tracing::debug_span!("http-request"))
                 .on_request(|request: &Request<Body>, _span: &Span| {
                     tracing::debug!("started {} {}", request.method(), request.uri().path())
                 })
                 .on_response(
-                    |response: &Response<Body>, latency: Duration, _span: &Span| {
+                    |_response: &Response<Body>, latency: Duration, _span: &Span| {
                         tracing::debug!("response generated in {:?}", latency)
                     },
                 )
-                .on_body_chunk(|chunk: &Bytes, latency: Duration, _span: &Span| {
+                .on_body_chunk(|chunk: &Bytes, _latency: Duration, _span: &Span| {
                     tracing::debug!("sending {} bytes", chunk.len())
                 })
                 .on_eos(
-                    |trailers: Option<&HeaderMap>, stream_duration: Duration, _span: &Span| {
+                    |_trailers: Option<&HeaderMap>, stream_duration: Duration, _span: &Span| {
                         tracing::debug!("stream closed after {:?}", stream_duration)
                     },
                 )
                 .on_failure(
-                    |error: ServerErrorsFailureClass, latency: Duration, _span: &Span| {
+                    |_error: ServerErrorsFailureClass, _latency: Duration, _span: &Span| {
                         tracing::debug!("something went wrong")
                     },
                 ),
@@ -116,11 +118,9 @@ async fn main() -> Result<()> {
     println!("🚀 Server started successfully");
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8000")
         .await
-        .map_err(|e| Error::ServerError(e))?;
+        .map_err(Error::ServerError)?;
 
-    Ok(axum::serve(listener, app)
-        .await
-        .map_err(|e| Error::ServerError(e))?)
+    axum::serve(listener, app).await.map_err(Error::ServerError)
 }
 
 #[derive(OpenApi)]

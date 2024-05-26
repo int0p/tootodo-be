@@ -77,7 +77,7 @@ pub struct FilterUser {
 }
 
 impl FilterUser {
-    pub fn filter_user(user: &User) -> Self {
+    pub fn new(user: &User) -> Self {
         FilterUser {
             id: user.id.to_string(),
             email: user.email.to_owned(),
@@ -91,7 +91,7 @@ impl FilterUser {
     }
 
     pub fn filter_users(users: &[User]) -> Vec<FilterUser> {
-        users.iter().map(FilterUser::filter_user).collect()
+        users.iter().map(FilterUser::new).collect()
     }
 }
 

@@ -7,7 +7,7 @@ use axum::{
     Json,
 };
 
-use crate::{db, error::ErrorResponse};
+use crate::{error::ErrorResponse, infra::db};
 
 pub type Result<T> = core::result::Result<T, Error>;
 

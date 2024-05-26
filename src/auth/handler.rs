@@ -10,7 +10,7 @@ use super::{
     utils::google_oauth::{get_google_user, request_token, QueryCode},
     utils::token,
 };
-use crate::{db, AppState};
+use crate::{infra::db, AppState};
 use argon2::{password_hash::SaltString, Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
 use axum::{
     extract::{Query, State},
@@ -31,7 +31,7 @@ use tracing::info;
     path = "/api/healthchecker",
     tag = "Health Checker Endpoint",
     responses(
-        (status = 200, description= "Authenticated User"),       
+        (status = 200, description= "Authenticated User"),
     ),
     security(
         ("token" = [])
@@ -81,7 +81,7 @@ pub async fn register_user_handler(
     let salt = SaltString::generate(&mut OsRng);
     let hashed_password = Argon2::default()
         .hash_password(body.password.as_bytes(), &salt)
-        .map_err(|e| Error::CannotHashPassword(e))
+        .map_err(Error::CannotHashPassword)
         .map(|hash| hash.to_string())?;
 
     // user 등록
@@ -235,7 +235,7 @@ pub async fn refresh_access_token_handler(
 )]
 pub async fn logout_handler(
     cookie_jar: CookieJar,
-    Extension(auth_guard): Extension<JWTAuthMiddleware>,
+    Extension(_auth_guard): Extension<JWTAuthMiddleware>,
     State(data): State<Arc<AppState>>,
 ) -> Result<impl IntoResponse> {
     let refresh_token = cookie_jar
@@ -243,7 +243,7 @@ pub async fn logout_handler(
         .map(|cookie| cookie.value().to_string())
         .ok_or_else(|| Error::InvalidToken)?;
 
-    let refresh_token_details =
+    let _refresh_token_details =
         match token::verify_jwt_token(data.env.refresh_token_public_key.to_owned(), &refresh_token)
         {
             Ok(token_details) => token_details,
@@ -290,7 +290,7 @@ pub async fn logout_handler(
     responses(
         (status = 200, description= "Authenticated User", body = UserResponse),
         (status= 500, description= "Internal Server Error", body = ErrorResponse )
-       
+
     ),
     security(
        ("token" = [])

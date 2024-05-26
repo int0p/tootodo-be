@@ -1,6 +1,6 @@
 use crate::auth;
-use crate::db;
-use crate::models;
+use crate::domain;
+use crate::infra::db;
 use axum::http;
 use derive_more::From;
 use serde::Serialize;
@@ -22,7 +22,7 @@ pub enum Error {
     #[from]
     DB(db::error::Error),
     #[from]
-    Model(models::error::Error),
+    Model(domain::error::Error),
 
     ServerError(std::io::Error),
     HeaderError(http::header::InvalidHeaderValue),
