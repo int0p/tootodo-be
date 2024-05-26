@@ -9,7 +9,11 @@ use axum::{
 
 use crate::{
     auth::utils::auth::JWTAuthMiddleware,
-    domain::error::{Error, Result},
+    domain::{
+        error::{Error, Result},
+        event::EventService,
+    },
+    interface::dto::event::req::{CreateEventReq, FilterOptions, UpdateEventReq},
     AppState,
 };
 
@@ -23,7 +27,7 @@ pub async fn event_list_handler(
     let limit = opts.limit.unwrap_or(10) as i64;
     let page = opts.page.unwrap_or(1) as i64;
 
-    match EventBMC::fetch_events(&app_state.mongodb.db, limit, page, &jwtauth.user.id)
+    match EventService::fetch_events(&app_state.mongodb.db, limit, page, &jwtauth.user.id)
         .await
         .map_err(Error::from)
     {
@@ -35,9 +39,9 @@ pub async fn event_list_handler(
 pub async fn create_event_handler(
     State(app_state): State<Arc<AppState>>,
     Extension(jwtauth): Extension<JWTAuthMiddleware>,
-    Json(body): Json<CreateEventSchema>,
+    Json(body): Json<CreateEventReq>,
 ) -> Result<impl IntoResponse> {
-    match EventBMC::create_event(&app_state.mongodb.db, &body, &jwtauth.user.id)
+    match EventService::create_event(&app_state.mongodb.db, &body, &jwtauth.user.id)
         .await
         .map_err(Error::from)
     {
@@ -51,7 +55,7 @@ pub async fn get_event_handler(
     State(app_state): State<Arc<AppState>>,
     Extension(jwtauth): Extension<JWTAuthMiddleware>,
 ) -> Result<impl IntoResponse> {
-    match EventBMC::get_event(&app_state.mongodb.db, &id, &jwtauth.user.id)
+    match EventService::get_event(&app_state.mongodb.db, &id, &jwtauth.user.id)
         .await
         .map_err(Error::from)
     {
@@ -64,9 +68,9 @@ pub async fn update_event_handler(
     Path(id): Path<String>,
     State(app_state): State<Arc<AppState>>,
     Extension(jwtauth): Extension<JWTAuthMiddleware>,
-    Json(body): Json<UpdateEventSchema>,
+    Json(body): Json<UpdateEventReq>,
 ) -> Result<impl IntoResponse> {
-    match EventBMC::update_event(&app_state.mongodb.db, &id, &body, &jwtauth.user.id)
+    match EventService::update_event(&app_state.mongodb.db, &id, &body, &jwtauth.user.id)
         .await
         .map_err(Error::from)
     {
@@ -79,7 +83,7 @@ pub async fn delete_event_handler(
     Path(id): Path<String>,
     State(app_state): State<Arc<AppState>>,
 ) -> Result<impl IntoResponse> {
-    match EventBMC::delete_event(&app_state.mongodb.db, &id)
+    match EventService::delete_event(&app_state.mongodb.db, &id)
         .await
         .map_err(Error::from)
     {

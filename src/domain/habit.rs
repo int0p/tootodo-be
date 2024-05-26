@@ -33,9 +33,9 @@ pub struct HabitModel {
 }
 
 #[derive(Clone, Debug)]
-pub struct HabitRepo;
+pub struct HabitService;
 
-impl MongoRepo for HabitRepo {
+impl MongoRepo for HabitService {
     const COLL_NAME: &'static str = "habits";
     const DOC_COLL_NAME: &'static str = "habits";
     type Model = HabitModel;
@@ -73,7 +73,7 @@ impl MongoRepo for HabitRepo {
     }
 }
 
-impl HabitRepo {
+impl HabitService {
     //mongodb에서 habit를 가져옴.
     pub async fn fetch_habits(
         db: &Database,

@@ -39,13 +39,8 @@ pub mod req {
 }
 
 pub mod res {
-    use crate::domain::{
-        category::PropertyModel,
-        chat::MsgModel,
-        types::{ChatType, StatusType},
-    };
-    use chrono::{DateTime, NaiveDate, Utc};
-    use mongodb::bson::oid::ObjectId;
+    use crate::domain::{category::PropertyModel, types::StatusType};
+    use chrono::{DateTime, Utc};
     use serde::Serialize;
     use uuid::Uuid;
 

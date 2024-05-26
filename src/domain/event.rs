@@ -40,9 +40,9 @@ pub struct EventModel {
 }
 
 #[derive(Clone, Debug)]
-pub struct EventRepo;
+pub struct EventService;
 
-impl MongoRepo for EventRepo {
+impl MongoRepo for EventService {
     const COLL_NAME: &'static str = "events";
     const DOC_COLL_NAME: &'static str = "events";
     type Model = EventModel;
@@ -93,7 +93,7 @@ impl MongoRepo for EventRepo {
     }
 }
 
-impl EventRepo {
+impl EventService {
     //mongodb에서 event를 가져옴.
     pub async fn fetch_events(
         db: &Database,
@@ -264,13 +264,13 @@ mod tests {
             location: None,
         };
 
-        let res = EventRepo::create_event(&db, &body1, &user_id).await;
+        let res = EventService::create_event(&db, &body1, &user_id).await;
         claim::assert_ok!(&res);
         let res = res.unwrap();
         claim::assert_matches!(res.status, "success");
         assert_eq!(res.data.event.title, body1.title);
 
-        let res = EventRepo::create_event(&db, &body2, &user_id).await;
+        let res = EventService::create_event(&db, &body2, &user_id).await;
         claim::assert_ok!(&res);
         let res = res.unwrap();
         claim::assert_matches!(res.status, "success");
@@ -284,7 +284,7 @@ mod tests {
         let limit = 10;
         let page = 1;
 
-        let res = EventRepo::fetch_events(&db, limit, page, &user_id).await;
+        let res = EventService::fetch_events(&db, limit, page, &user_id).await;
         claim::assert_ok!(&res);
         let res = res.unwrap();
         claim::assert_matches!(res.status, "success");
@@ -296,7 +296,7 @@ mod tests {
         let user_id = Uuid::from_bytes([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
         let event_id = "507f1f77bcf86cd799439013";
 
-        let res = EventRepo::get_event(&db, event_id, &user_id).await;
+        let res = EventService::get_event(&db, event_id, &user_id).await;
         claim::assert_ok!(&res);
         let res = res.unwrap();
         claim::assert_matches!(res.status, "success");
@@ -317,7 +317,7 @@ mod tests {
             chat_type: Some(ChatType::Task),
         };
 
-        let res = EventRepo::update_event(&db, event_id, &body, &user_id).await;
+        let res = EventService::update_event(&db, event_id, &body, &user_id).await;
         claim::assert_ok!(&res);
         let res = res.unwrap();
         claim::assert_matches!(res.status, "success");
@@ -333,7 +333,7 @@ mod tests {
         let db = setup().await;
         let event_id = "507f1f77bcf86cd799439011";
 
-        let res = EventRepo::delete_event(&db, event_id).await;
+        let res = EventService::delete_event(&db, event_id).await;
         claim::assert_ok!(&res);
     }
 }
