@@ -4,7 +4,8 @@ use crate::infra::db::error::Error as DBError;
 use chrono::Utc;
 use mongodb::bson::Document;
 use mongodb::bson::{self, doc, oid::ObjectId, Bson};
-use mongodb::Database;
+use mongodb::options::IndexOptions;
+use mongodb::{Database, IndexModel};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use std::str::FromStr;
@@ -58,6 +59,7 @@ pub async fn add_elem<S>(
     db: &Database,
     src_id: &str,
     new_elem: &S::CreateElemReq,
+    index: Option<&str>,
 ) -> Result<Vec<S::ElemModel>>
 where
     S: MongoArrayRepo,
@@ -65,6 +67,17 @@ where
     S::CreateElemReq: Serialize,
 {
     let coll = db.collection::<S::CollModel>(S::COLL_NAME);
+
+    // 인덱스 생성
+    if let Some(index_field) = index {
+        let index_model = IndexModel::builder()
+            .keys(doc! { index_field: 1 })
+            .options(IndexOptions::builder().unique(false).build())
+            .build();
+        coll.create_index(index_model, None)
+            .await
+            .map_err(|e| DBError::MongoError(e))?;
+    }
 
     let oid = ObjectId::from_str(src_id).map_err(|e| DBError::MongoGetOidError(e))?;
 

@@ -78,7 +78,7 @@ where
         src_id: &str,
         new_msg: &CreateMsgReq,
     ) -> Result<Vec<MsgModel>> {
-        Ok(base_array::add_elem::<Self>(db, src_id, new_msg).await?)
+        Ok(base_array::add_elem::<Self>(db, src_id, new_msg, Some("booked")).await?)
     }
 
     pub async fn fetch_msgs(db: &Database, src_id: &str) -> Result<Vec<MsgModel>> {

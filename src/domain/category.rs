@@ -18,7 +18,10 @@ use mongodb::{
     Database,
 };
 
-use super::types::{PropertyType, StatusType};
+use super::{
+    sub::property::PropertyModel,
+    types::{PropertyType, StatusType},
+};
 
 #[allow(non_snake_case)]
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -35,36 +38,6 @@ pub struct CategoryModel {
     pub createdAt: DateTime<Utc>,
     #[serde(with = "bson::serde_helpers::chrono_datetime_as_bson_datetime")]
     pub updatedAt: DateTime<Utc>,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct PropertyModel {
-    #[serde(rename = "_id")]
-    pub id: ObjectId,
-    pub name: String,
-    pub prop_type: PropertyType,
-    pub options: Option<Vec<String>>,
-}
-
-impl PropertyModel {
-    pub fn new(
-        id: ObjectId,
-        name: String,
-        prop_type: PropertyType,
-        options: Option<Vec<String>>,
-    ) -> Self {
-        let options = match prop_type {
-            PropertyType::MultiSelect | PropertyType::SingleSelect => options,
-            _ => None,
-        };
-
-        PropertyModel {
-            id,
-            name,
-            prop_type,
-            options,
-        }
-    }
 }
 
 #[derive(Clone, Debug)]

@@ -50,7 +50,7 @@ impl BlockService {
         category_id: &str,
         new_prop: &CreateBlockReq,
     ) -> Result<Vec<BlockModel>> {
-        Ok(base_array::add_elem::<BlockService>(db, category_id, new_prop).await?)
+        Ok(base_array::add_elem::<BlockService>(db, category_id, new_prop, None).await?)
     }
 
     pub async fn fetch_blocks(db: &Database, category_id: &str) -> Result<Vec<BlockModel>> {

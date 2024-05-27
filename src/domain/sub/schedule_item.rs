@@ -1,3 +1,5 @@
+use std::any::TypeId;
+
 use crate::domain::error::Result;
 use crate::domain::repo::base_array::{self, MongoArrayRepo};
 use crate::domain::schedule::ScheduleModel;
@@ -104,7 +106,15 @@ where
         src_id: &str,
         new_elem: &Elem::CreateReq,
     ) -> Result<Vec<Elem>> {
-        Ok(base_array::add_elem::<Self>(db, src_id, new_elem).await?)
+        // 배열의 원소에 index에 해당하는 필드가 없을 경우, 해당 index를 무시하므로 ScheduledAt 외의 원소에 아무 영항 안 줌.
+        Ok(base_array::add_elem::<Self>(db, src_id, new_elem, Some("item_type")).await?)
+
+        // Elem이 static lifetime이어야 가능.
+        // if TypeId::of::<Elem>() == TypeId::of::<ScheduledAt>() {
+        //     Ok(base_array::add_elem::<Self>(db, src_id, new_elem, Some("item_type")).await?)
+        // } else {
+        //     Ok(base_array::add_elem::<Self>(db, src_id, new_elem, None).await?)
+        // }
     }
 
     pub async fn fetch_elems(db: &Database, src_id: &str) -> Result<Vec<Elem>> {
