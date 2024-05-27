@@ -66,7 +66,7 @@ where
 {
     let coll = db.collection::<S::CollModel>(S::COLL_NAME);
 
-    let oid = ObjectId::from_str(src_id).map_err(DBError::MongoGetOidError)?;
+    let oid = ObjectId::from_str(src_id).map_err(|e| DBError::MongoGetOidError(e))?;
 
     let update_doc = doc! {
         "$push": { S::ARR_NAME: bson::to_bson(new_elem).map_err(DBError::MongoSerializeBsonError)? },
