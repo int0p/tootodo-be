@@ -1,9 +1,9 @@
-use chrono::{DateTime, NaiveDate, NaiveTime, Utc, Weekday};
+use chrono::{DateTime, Utc};
 use mongodb::bson::{self, oid::ObjectId};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use super::{event::EventModel, habit::HabitModel, task::TaskModel};
+use super::sub::schedule_item::{ScheduledAt, ScheduledEvent, ScheduledHabit, ScheduledTask};
 
 /// [FE logic]
 /// 1. item은 사용자가 제거할때까지 제거되지 않는다.
@@ -31,24 +31,13 @@ pub struct ScheduleModel {
     #[serde(with = "bson::serde_helpers::uuid_1_as_binary")]
     pub user: Uuid,
 
-    pub tasks: Vec<TaskModel>,
-    pub task_schedule: Vec<ScheduledAt>,
-    pub events: Vec<EventModel>,
-    pub event_schedule: Vec<ScheduledAt>,
-    pub habits: Vec<HabitModel>,
-    pub habit_schedule: Vec<ScheduledAt>,
+    pub tasks: Vec<ScheduledTask>,
+    pub events: Vec<ScheduledEvent>,
+    pub habits: Vec<ScheduledHabit>,
+    pub scheduled_times: Vec<ScheduledAt>,
 
     #[serde(with = "bson::serde_helpers::chrono_datetime_as_bson_datetime")]
     pub createdAt: DateTime<Utc>,
     #[serde(with = "bson::serde_helpers::chrono_datetime_as_bson_datetime")]
     pub updatedAt: DateTime<Utc>,
-}
-
-#[allow(non_snake_case)]
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-pub struct ScheduledAt {
-    pub item_id: ObjectId,
-    pub weekday: Weekday, //Mon=0
-    pub startAt: Option<NaiveTime>,
-    pub endAt: Option<NaiveTime>,
 }

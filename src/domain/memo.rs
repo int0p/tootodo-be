@@ -32,7 +32,6 @@ pub struct MemoModel {
     pub updatedAt: DateTime<Utc>,
 }
 
-#[derive(Clone, Debug)]
 pub struct MemoService;
 
 impl MongoRepo for MemoService {

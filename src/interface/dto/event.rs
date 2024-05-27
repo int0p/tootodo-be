@@ -40,7 +40,7 @@ pub mod req {
 }
 
 pub mod res {
-    use crate::domain::{chat::MsgModel, types::ChatType};
+    use crate::domain::{sub::chat::MsgModel, types::ChatType};
     use chrono::{DateTime, NaiveDate, Utc};
     use serde::Serialize;
     use uuid::Uuid;

@@ -1,6 +1,6 @@
 pub mod req {
     use crate::domain::{
-        block::BlockModel,
+        sub::task_block::BlockModel,
         task::{PropertyValue, TaskModel},
         types::{BlockType, ChatType, PropertyType},
     };
@@ -128,8 +128,8 @@ pub mod req {
 
 pub mod res {
     use crate::domain::{
-        block::BlockModel,
-        chat::MsgModel,
+        sub::chat::MsgModel,
+        sub::task_block::BlockModel,
         task::{PropertyValue, TaskModel},
         types::ChatType,
     };

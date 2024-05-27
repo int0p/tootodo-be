@@ -1,5 +1,13 @@
 use serde::{Deserialize, Serialize};
 
+// schedule
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub enum ScheduleType {
+    Task,
+    Event,
+    Habit,
+}
+
 // category, habit
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum StatusType {

@@ -3,7 +3,7 @@ use mongodb::bson::{self, oid::ObjectId};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use super::timer_result::TimerResultModel;
+use super::sub::daily_item::{DailyEvent, DailyHabit, DailyTask, TimerResultModel};
 
 #[allow(non_snake_case)]
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -23,31 +23,4 @@ pub struct DailyModel {
     pub createdAt: DateTime<Utc>,
     #[serde(with = "bson::serde_helpers::chrono_datetime_as_bson_datetime")]
     pub updatedAt: DateTime<Utc>,
-}
-
-#[allow(non_snake_case)]
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-pub struct DailyTask {
-    pub task_id: ObjectId,
-    pub title: String,
-    pub done: bool,
-    pub doneAt: Option<DateTime<Utc>>,
-}
-
-#[allow(non_snake_case)]
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-pub struct DailyEvent {
-    pub event_id: ObjectId,
-    pub title: String,
-    pub done: bool,
-    pub doneAt: Option<DateTime<Utc>>,
-}
-
-#[allow(non_snake_case)]
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-pub struct DailyHabit {
-    pub habit_id: ObjectId,
-    pub name: String,
-    pub done: bool,
-    pub doneAt: Option<DateTime<Utc>>,
 }

@@ -3,11 +3,11 @@ use futures::TryStreamExt;
 use std::str::FromStr;
 
 use super::{
-    block::BlockModel,
     category::CategoryModel,
-    chat::MsgModel,
+    sub::{chat::MsgModel, task_block::BlockModel},
     types::{ChatType, PropertyType},
 };
+
 use crate::{
     domain::error::{Error::*, Result},
     domain::repo::base::{self, MongoRepo},

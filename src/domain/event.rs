@@ -1,4 +1,4 @@
-use crate::domain::chat::MsgModel;
+use crate::domain::sub::chat::MsgModel;
 use crate::domain::types::ChatType;
 use chrono::prelude::*;
 use mongodb::bson::doc;

@@ -1,15 +1,15 @@
-pub mod req{
+pub mod req {
     use chrono::{DateTime, NaiveDate, Utc};
     use mongodb::bson::oid::ObjectId;
     use serde::{Deserialize, Serialize};
-    
+
     #[allow(non_snake_case)]
     #[derive(Serialize, Deserialize, Debug)]
     pub struct CreateDailyTaskReq {
         pub task_id: ObjectId,
         pub title: String,
     }
-    
+
     #[allow(non_snake_case)]
     #[derive(Serialize, Deserialize, Debug)]
     pub struct UpdateDailyTaskReq {
@@ -20,14 +20,14 @@ pub mod req{
         #[serde(skip_serializing_if = "Option::is_none")]
         pub doneAt: Option<DateTime<Utc>>,
     }
-    
+
     #[allow(non_snake_case)]
     #[derive(Serialize, Deserialize, Debug)]
     pub struct CreateDailyEventReq {
         pub event_id: ObjectId,
         pub title: String,
     }
-    
+
     #[allow(non_snake_case)]
     #[derive(Serialize, Deserialize, Debug)]
     pub struct UpdateDailyEventReq {
@@ -38,25 +38,28 @@ pub mod req{
         #[serde(skip_serializing_if = "Option::is_none")]
         pub doneAt: Option<DateTime<Utc>>,
     }
-    
+
     #[allow(non_snake_case)]
     #[derive(Serialize, Deserialize, Debug)]
     pub struct CreateDailyHabitReq {
         pub habit_id: ObjectId,
         pub name: String,
+        pub icon: String,
     }
-    
+
     #[allow(non_snake_case)]
     #[derive(Serialize, Deserialize, Debug)]
     pub struct UpdateDailyHabitReq {
         #[serde(skip_serializing_if = "Option::is_none")]
         pub name: Option<String>,
         #[serde(skip_serializing_if = "Option::is_none")]
+        pub icon: Option<String>,
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub done: Option<bool>,
         #[serde(skip_serializing_if = "Option::is_none")]
         pub doneAt: Option<DateTime<Utc>>,
     }
-    
+
     #[allow(non_snake_case)]
     #[derive(Serialize, Deserialize, Debug)]
     pub struct CreateTimerResultReq {
@@ -66,7 +69,7 @@ pub mod req{
         pub endAt: DateTime<Utc>,
         pub focus_time: String,
     }
-    
+
     #[allow(non_snake_case)]
     #[derive(Serialize, Deserialize, Debug)]
     pub struct UpdateTimerResultReq {
@@ -79,9 +82,6 @@ pub mod req{
         #[serde(skip_serializing_if = "Option::is_none")]
         pub endAt: Option<DateTime<Utc>>,
     }
-    
 }
 
-pub mod res{
-
-}
+pub mod res {}

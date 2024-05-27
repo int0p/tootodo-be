@@ -1,4 +1,4 @@
-use super::utils::{find_doc_by_id, find_mdoc_by_id, update_mdoc_by_id};
+use super::utils::{find_doc_by_id, find_mdoc_by_id, get_m_elems, update_mdoc_by_id};
 use crate::domain::error::{Error::*, Result};
 use crate::infra::db::error::Error as DBError;
 use chrono::Utc;
@@ -8,10 +8,12 @@ use mongodb::Database;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use std::str::FromStr;
+
 pub trait MongoArrayRepo {
-    type CollModel: DeserializeOwned + Unpin + Send + Sync;
+    type CollModel: DeserializeOwned + Serialize + Unpin + Send + Sync;
     type ElemModel: DeserializeOwned + Serialize + Unpin + Send + Sync;
     type UpdateElemReq: Serialize;
+    type CreateElemReq: Serialize;
     const COLL_NAME: &'static str;
     const ARR_NAME: &'static str;
 }
@@ -20,7 +22,7 @@ pub trait MongoArrayRepo {
 pub async fn get_elem<S>(db: &Database, src_id: &str, elem_id: &str) -> Result<S::ElemModel>
 where
     S: MongoArrayRepo,
-    S::CollModel: DeserializeOwned + Unpin + Send + Sync,
+    S::CollModel: DeserializeOwned + Serialize + Unpin + Send + Sync,
 {
     let doc_coll = db.collection::<Document>(S::COLL_NAME);
 
@@ -29,6 +31,7 @@ where
 
     // Find array
     let doc = find_doc_by_id(&doc_coll, &oid, doc! { "_id": oid }).await?;
+
     let array = doc
         .get_array(S::ARR_NAME)
         .map_err(DBError::MongoDataError)?;
@@ -54,11 +57,12 @@ where
 pub async fn add_elem<S>(
     db: &Database,
     src_id: &str,
-    new_elem: &S::ElemModel,
-) -> Result<S::CollModel>
+    new_elem: &S::CreateElemReq,
+) -> Result<Vec<S::ElemModel>>
 where
     S: MongoArrayRepo,
-    S::CollModel: DeserializeOwned + Unpin + Send + Sync,
+    S::CollModel: DeserializeOwned + Serialize + Unpin + Send + Sync,
+    S::CreateElemReq: Serialize,
 {
     let coll = db.collection::<S::CollModel>(S::COLL_NAME);
 
@@ -69,25 +73,31 @@ where
         "$set": { "updatedAt": Bson::DateTime(Utc::now().into()) }
     };
 
-    update_mdoc_by_id(&coll, &oid, None, update_doc, doc! { "_id": oid }).await
+    match update_mdoc_by_id(&coll, &oid, None, update_doc, doc! { "_id": oid }).await {
+        Ok(updated_doc) => get_m_elems(S::ARR_NAME, &updated_doc).await,
+        Err(e) => Err(e),
+    }
 }
 
-pub async fn fetch_elems<S>(db: &Database, src_id: &str) -> Result<S::CollModel>
+pub async fn fetch_elems<S>(db: &Database, src_id: &str) -> Result<Vec<S::ElemModel>>
 where
     S: MongoArrayRepo,
-    S::CollModel: DeserializeOwned + Unpin + Send + Sync,
+    S::CollModel: DeserializeOwned + Serialize + Unpin + Send + Sync,
 {
     let coll = db.collection::<S::CollModel>(S::COLL_NAME);
 
     let oid = ObjectId::from_str(src_id).map_err(DBError::MongoGetOidError)?;
 
-    find_mdoc_by_id(&coll, &oid, doc! { "_id": oid }).await
+    match find_mdoc_by_id(&coll, &oid, doc! { "_id": oid }).await {
+        Ok(doc) => get_m_elems(S::ARR_NAME, &doc).await,
+        Err(e) => Err(e),
+    }
 }
 
-pub async fn remove_elem<S>(db: &Database, src_id: &str, elem_id: &str) -> Result<S::CollModel>
+pub async fn remove_elem<S>(db: &Database, src_id: &str, elem_id: &str) -> Result<Vec<S::ElemModel>>
 where
     S: MongoArrayRepo,
-    S::CollModel: DeserializeOwned + Unpin + Send + Sync,
+    S::CollModel: DeserializeOwned + Serialize + Unpin + Send + Sync,
 {
     let coll = db.collection::<S::CollModel>(S::COLL_NAME);
 
@@ -98,7 +108,10 @@ where
         "$set": { "updatedAt": Bson::DateTime(Utc::now().into()) }
     };
 
-    update_mdoc_by_id(&coll, &oid, None, update_doc, doc! { "_id": oid }).await
+    match update_mdoc_by_id(&coll, &oid, None, update_doc, doc! { "_id": oid }).await {
+        Ok(updated_doc) => get_m_elems(S::ARR_NAME, &updated_doc).await,
+        Err(e) => Err(e),
+    }
 }
 
 pub async fn update_elem<S>(
@@ -106,10 +119,11 @@ pub async fn update_elem<S>(
     src_id: &str,
     elem_id: &str,
     update_elem: &S::UpdateElemReq,
-) -> Result<S::CollModel>
+) -> Result<Vec<S::ElemModel>>
 where
     S: MongoArrayRepo,
-    S::CollModel: DeserializeOwned + Unpin + Send + Sync,
+    S::CollModel: DeserializeOwned + Serialize + Unpin + Send + Sync,
+    S::UpdateElemReq: Serialize,
 {
     let coll = db.collection::<S::CollModel>(S::COLL_NAME);
 
@@ -133,7 +147,7 @@ where
         doc! { "elem._id": ObjectId::from_str(elem_id).map_err(DBError::MongoGetOidError)? };
 
     // MongoDB 업데이트 실행
-    update_mdoc_by_id(
+    match update_mdoc_by_id(
         &coll,
         &oid,
         Some(array_filters),
@@ -141,4 +155,8 @@ where
         doc! { "_id": oid },
     )
     .await
+    {
+        Ok(updated_doc) => get_m_elems(S::ARR_NAME, &updated_doc).await,
+        Err(e) => Err(e),
+    }
 }

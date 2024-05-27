@@ -1,8 +1,9 @@
 use mongodb::Database;
 
+use crate::interface::dto::task::req::CreatePropertyReq;
 use crate::{domain::error::Result, interface::dto::category::req::UpdatePropertyReq};
 
-use super::{
+use crate::domain::{
     category::{CategoryModel, PropertyModel},
     repo::base_array::{self, MongoArrayRepo},
 };
@@ -13,6 +14,7 @@ impl MongoArrayRepo for PropertyService {
     type CollModel = CategoryModel;
     type ElemModel = PropertyModel;
     type UpdateElemReq = UpdatePropertyReq;
+    type CreateElemReq = CreatePropertyReq;
     const COLL_NAME: &'static str = "categories";
     const ARR_NAME: &'static str = "properties";
 }
@@ -23,24 +25,20 @@ impl PropertyService {
         category_id: &str,
         prop_id: &str,
     ) -> Result<PropertyModel> {
-        let doc = base_array::get_elem::<PropertyService>(db, category_id, prop_id).await?;
+        let doc = base_array::get_elem::<Self>(db, category_id, prop_id).await?;
         Ok(doc)
     }
 
     pub async fn add_property(
         db: &Database,
         category_id: &str,
-        new_prop: &PropertyModel,
+        new_prop: &CreatePropertyReq,
     ) -> Result<Vec<PropertyModel>> {
-        let doc: CategoryModel =
-            base_array::add_elem::<PropertyService>(db, category_id, new_prop).await?;
-        Ok(doc.properties)
+        Ok(base_array::add_elem::<Self>(db, category_id, new_prop).await?)
     }
 
     pub async fn fetch_properties(db: &Database, category_id: &str) -> Result<Vec<PropertyModel>> {
-        let doc: CategoryModel =
-            base_array::fetch_elems::<PropertyService>(db, category_id).await?;
-        Ok(doc.properties)
+        Ok(base_array::fetch_elems::<Self>(db, category_id).await?)
     }
 
     pub async fn update_property(
@@ -50,9 +48,7 @@ impl PropertyService {
         new_prop: &UpdatePropertyReq,
     ) -> Result<Vec<PropertyModel>> {
         // TODO: property type변경 제한
-        let doc: CategoryModel =
-            base_array::update_elem::<PropertyService>(db, category_id, prop_id, new_prop).await?;
-        Ok(doc.properties)
+        Ok(base_array::update_elem::<Self>(db, category_id, prop_id, new_prop).await?)
     }
 
     pub async fn remove_property(
@@ -60,8 +56,6 @@ impl PropertyService {
         category_id: &str,
         prop_id: &str,
     ) -> Result<Vec<PropertyModel>> {
-        let doc: CategoryModel =
-            base_array::remove_elem::<PropertyService>(db, category_id, prop_id).await?;
-        Ok(doc.properties)
+        Ok(base_array::remove_elem::<Self>(db, category_id, prop_id).await?)
     }
 }
