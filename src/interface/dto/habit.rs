@@ -32,7 +32,7 @@ pub mod res {
     use serde::Serialize;
     use uuid::Uuid;
 
-    use crate::domain::types::StatusType;
+    use crate::domain::{habit::HabitModel, types::StatusType};
 
     #[allow(non_snake_case)]
     #[derive(Serialize, Debug)]
@@ -44,6 +44,20 @@ pub mod res {
         pub status: StatusType,
         pub createdAt: DateTime<Utc>,
         pub updatedAt: DateTime<Utc>,
+    }
+
+    impl HabitRes {
+        pub fn from_model(habit: &HabitModel) -> Self {
+            Self {
+                id: habit.id.to_hex(),
+                user: habit.user,
+                name: habit.name.to_owned(),
+                icon: habit.icon.to_owned(),
+                status: habit.status.to_owned(),
+                createdAt: habit.createdAt,
+                updatedAt: habit.updatedAt,
+            }
+        }
     }
 
     #[derive(Serialize, Debug)]

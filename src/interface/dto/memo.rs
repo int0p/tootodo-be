@@ -31,6 +31,8 @@ pub mod res {
     use serde::Serialize;
     use uuid::Uuid;
 
+    use crate::domain::memo::MemoModel;
+
     #[allow(non_snake_case)]
     #[derive(Serialize, Debug)]
     pub struct MemoRes {
@@ -43,6 +45,19 @@ pub mod res {
         pub updatedAt: DateTime<Utc>,
     }
 
+    impl MemoRes {
+        pub fn from_model(memo: &MemoModel) -> Self {
+            Self {
+                id: memo.id.to_hex(),
+                user: memo.user,
+                title: memo.title.to_owned(),
+                content: memo.content.to_owned(),
+                color: memo.color.to_owned(),
+                createdAt: memo.createdAt,
+                updatedAt: memo.updatedAt,
+            }
+        }
+    }
     #[derive(Serialize, Debug)]
     pub struct MemoData {
         pub memo: MemoRes,

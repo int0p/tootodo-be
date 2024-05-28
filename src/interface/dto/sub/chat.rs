@@ -59,6 +59,20 @@ pub mod res {
         pub chat_msgs: Option<Vec<MsgModel>>,
     }
 
+    impl MsgRes {
+        pub fn from_model(msg: &MsgModel) -> Self {
+            Self {
+                id: msg.id.to_hex(),
+                msg_type: msg.msg_type.to_owned(),
+                content: msg.content.clone(),
+                created_at: msg.created_at,
+                booked: msg.booked,
+                chat_type: msg.chat_type.to_owned(),
+                chat_msgs: msg.chat_msgs.clone(),
+            }
+        }
+    }
+
     #[derive(Serialize, Debug)]
     pub struct MsgData {
         pub msg: MsgRes,

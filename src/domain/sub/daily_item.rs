@@ -1,7 +1,9 @@
 use crate::domain::daily::DailyModel;
 use crate::domain::error::Result;
 use crate::domain::repo::base_array::{self, MongoArrayRepo};
-use crate::interface::dto::daily::req::*;
+use crate::domain::repo::ElemInfo;
+use crate::interface::dto::sub::daily_item::req::*;
+use crate::interface::dto::sub::daily_item::res::*;
 use chrono::{DateTime, Utc};
 use mongodb::bson::oid::ObjectId;
 use mongodb::Database;
@@ -10,51 +12,44 @@ use serde::{Deserialize, Serialize};
 
 #[allow(non_snake_case)]
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-pub struct DailyTask {
-    task_id: ObjectId,
-    title: String,
-    done: bool,
-    doneAt: Option<DateTime<Utc>>,
+pub struct DailyTaskModel {
+    pub task_id: ObjectId,
+    pub title: String,
+    pub done: bool,
+    pub doneAt: Option<DateTime<Utc>>,
 }
 
 #[allow(non_snake_case)]
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-pub struct DailyEvent {
-    event_id: ObjectId,
-    title: String,
-    done: bool,
-    doneAt: Option<DateTime<Utc>>,
+pub struct DailyEventModel {
+    pub event_id: ObjectId,
+    pub title: String,
+    pub done: bool,
+    pub doneAt: Option<DateTime<Utc>>,
 }
 
 #[allow(non_snake_case)]
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-pub struct DailyHabit {
-    habit_id: ObjectId,
-    icon: String,
-    name: String,
-    done: bool,
-    doneAt: Option<DateTime<Utc>>,
+pub struct DailyHabitModel {
+    pub habit_id: ObjectId,
+    pub icon: String,
+    pub name: String,
+    pub done: bool,
+    pub doneAt: Option<DateTime<Utc>>,
 }
 
 #[allow(non_snake_case)]
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct TimerResultModel {
-    category_id: ObjectId,
-    category_color: String,
-    startAt: DateTime<Utc>,
-    endAt: DateTime<Utc>,
-    focus_time: String,
+    pub category_id: ObjectId,
+    pub category_color: String,
+    pub startAt: DateTime<Utc>,
+    pub endAt: DateTime<Utc>,
+    pub focus_time: String,
 }
 
 pub struct DailyItemService<Elem> {
     _phantom: std::marker::PhantomData<Elem>,
-}
-
-pub trait ElemInfo {
-    const ARR_NAME: &'static str;
-    type UpdateReq: Serialize;
-    type CreateReq: Serialize;
-    type Res: DeserializeOwned + Send + Sync + Serialize;
 }
 
 impl ElemInfo for TimerResultModel {
@@ -62,27 +57,43 @@ impl ElemInfo for TimerResultModel {
     type UpdateReq = UpdateTimerResultReq;
     type CreateReq = CreateTimerResultReq;
     type Res = TimerResultRes;
+
+    fn convert_to_res(doc: &Self) -> Self::Res {
+        TimerResultRes::from_model(doc)
+    }
 }
 
-impl ElemInfo for DailyTask {
+impl ElemInfo for DailyTaskModel {
     const ARR_NAME: &'static str = "tasks";
     type UpdateReq = UpdateDailyTaskReq;
     type CreateReq = CreateDailyTaskReq;
     type Res = DailyTaskRes;
+
+    fn convert_to_res(doc: &Self) -> Self::Res {
+        DailyTaskRes::from_model(doc)
+    }
 }
 
-impl ElemInfo for DailyEvent {
+impl ElemInfo for DailyEventModel {
     const ARR_NAME: &'static str = "events";
     type UpdateReq = UpdateDailyEventReq;
     type CreateReq = CreateDailyEventReq;
     type Res = DailyEventRes;
+
+    fn convert_to_res(doc: &Self) -> Self::Res {
+        DailyEventRes::from_model(doc)
+    }
 }
 
-impl ElemInfo for DailyHabit {
+impl ElemInfo for DailyHabitModel {
     const ARR_NAME: &'static str = "habits";
     type UpdateReq = UpdateDailyHabitReq;
     type CreateReq = CreateDailyHabitReq;
     type Res = DailyHabitRes;
+
+    fn convert_to_res(doc: &Self) -> Self::Res {
+        DailyHabitRes::from_model(doc)
+    }
 }
 
 // daily collection의 tasks, habits, events, timer_results 배열필드에 각각의 element model을 CRUD하는 서비스
@@ -102,8 +113,7 @@ where
     const ARR_NAME: &'static str = Elem::ARR_NAME;
 
     fn convert_doc_to_response(doc: &Self::ElemModel) -> Result<Self::ElemRes> {
-        let res: Self::ElemRes = bson::ser::from_bson(bson::ser::to_document(doc)?).unwrap();
-        Ok(res)
+        Ok(Elem::convert_to_res(doc))
     }
 }
 
@@ -111,25 +121,42 @@ impl<Elem> DailyItemService<Elem>
 where
     Elem: DeserializeOwned + Serialize + Unpin + Send + Sync + ElemInfo,
 {
-    pub async fn get_elem(db: &Database, src_id: &str, elem_id: &str) -> Result<Elem> {
-        Ok(base_array::get_elem::<Self>(db, src_id, elem_id).await?)
+    pub async fn get_elem(
+        db: &Database,
+        src_id: &str,
+        elem_id: &str,
+    ) -> Result<SingleDailyItemRes<Elem::Res>> {
+        let result = base_array::get_elem::<Self>(db, src_id, elem_id).await?;
+        Ok(SingleDailyItemRes {
+            status: "success",
+            data: DailyItemData { item: result },
+        })
     }
 
     pub async fn add_elem(
         db: &Database,
         src_id: &str,
         new_elem: &Elem::CreateReq,
-    ) -> Result<Vec<Elem>> {
-        // 배열의 원소에 index에 해당하는 필드가 없을 경우, 해당 index를 무시하므로 timerResult에 아무 영항 안 줌.
-        Ok(base_array::add_elem::<Self>(db, src_id, new_elem, Some("done")).await?)
+    ) -> Result<SingleDailyItemRes<Elem::Res>> {
+        let result = base_array::add_elem::<Self>(db, src_id, new_elem, Some("done")).await?;
+        Ok(SingleDailyItemRes {
+            status: "success",
+            data: DailyItemData { item: result },
+        })
     }
 
-    pub async fn fetch_elems(db: &Database, src_id: &str) -> Result<Vec<Elem>> {
-        Ok(base_array::fetch_elems::<Self>(db, src_id).await?)
-    }
-
-    pub async fn remove_elem(db: &Database, src_id: &str, elem_id: &str) -> Result<Vec<Elem>> {
-        Ok(base_array::remove_elem::<Self>(db, src_id, elem_id).await?)
+    pub async fn fetch_elems(
+        db: &Database,
+        src_id: &str,
+        limit: i64,
+        page: i64,
+    ) -> Result<DailyItemListRes<Elem::Res>> {
+        let results = base_array::fetch_elems::<Self>(db, src_id, limit, page).await?;
+        Ok(DailyItemListRes {
+            status: "success",
+            results: results.len(),
+            items: results,
+        })
     }
 
     pub async fn update_elem(
@@ -137,7 +164,16 @@ where
         src_id: &str,
         elem_id: &str,
         new_elem: &Elem::UpdateReq,
-    ) -> Result<Vec<Elem>> {
-        Ok(base_array::update_elem::<Self>(db, src_id, elem_id, new_elem).await?)
+    ) -> Result<SingleDailyItemRes<Elem::Res>> {
+        let result = base_array::update_elem::<Self>(db, src_id, elem_id, new_elem).await?;
+        Ok(SingleDailyItemRes {
+            status: "success",
+            data: DailyItemData { item: result },
+        })
+    }
+
+    pub async fn remove_elem(db: &Database, src_id: &str, elem_id: &str) -> Result<()> {
+        base_array::remove_elem::<Self>(db, src_id, elem_id).await?;
+        Ok(())
     }
 }

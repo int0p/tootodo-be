@@ -7,7 +7,8 @@ use crate::domain::error::Result;
 use crate::domain::repo::base_array::{self, MongoArrayRepo};
 use crate::domain::task::TaskModel;
 use crate::domain::types::BlockType;
-use crate::interface::dto::task::req::{CreateBlockReq, UpdateBlockReq};
+use crate::interface::dto::sub::task_block::req::{CreateBlockReq, UpdateBlockReq};
+use crate::interface::dto::sub::task_block::res::*;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct BlockModel {
@@ -36,25 +37,53 @@ impl MongoArrayRepo for BlockService {
     type ElemModel = BlockModel;
     type UpdateElemReq = UpdateBlockReq;
     type CreateElemReq = CreateBlockReq;
-    const COLL_NAME: &'static str = "categories";
+    type ElemRes = BlockRes;
+
+    const COLL_NAME: &'static str = "tasks";
     const ARR_NAME: &'static str = "blocks";
+
+    fn convert_doc_to_response(doc: &BlockModel) -> Result<Self::ElemRes> {
+        Ok(BlockRes::from_model(doc))
+    }
 }
 
 impl BlockService {
-    pub async fn get_block(db: &Database, category_id: &str, prop_id: &str) -> Result<BlockModel> {
-        Ok(base_array::get_elem::<BlockService>(db, category_id, prop_id).await?)
+    pub async fn get_block(
+        db: &Database,
+        category_id: &str,
+        prop_id: &str,
+    ) -> Result<SingleBlockRes> {
+        let result = base_array::get_elem::<Self>(db, category_id, prop_id).await?;
+        Ok(SingleBlockRes {
+            status: "success",
+            data: BlockData { block: result },
+        })
     }
 
     pub async fn add_block(
         db: &Database,
         category_id: &str,
         new_prop: &CreateBlockReq,
-    ) -> Result<Vec<BlockModel>> {
-        Ok(base_array::add_elem::<BlockService>(db, category_id, new_prop, None).await?)
+    ) -> Result<SingleBlockRes> {
+        let result = base_array::add_elem::<Self>(db, category_id, new_prop, None).await?;
+        Ok(SingleBlockRes {
+            status: "success",
+            data: BlockData { block: result },
+        })
     }
 
-    pub async fn fetch_blocks(db: &Database, category_id: &str) -> Result<Vec<BlockModel>> {
-        Ok(base_array::fetch_elems::<BlockService>(db, category_id).await?)
+    pub async fn fetch_blocks(
+        db: &Database,
+        category_id: &str,
+        limit: i64,
+        page: i64,
+    ) -> Result<BlockListRes> {
+        let results = base_array::fetch_elems::<Self>(db, category_id, limit, page).await?;
+        Ok(BlockListRes {
+            status: "success",
+            results: results.len(),
+            blocks: results,
+        })
     }
 
     pub async fn update_block(
@@ -62,15 +91,16 @@ impl BlockService {
         category_id: &str,
         prop_id: &str,
         new_prop: &UpdateBlockReq,
-    ) -> Result<Vec<BlockModel>> {
-        Ok(base_array::update_elem::<BlockService>(db, category_id, prop_id, new_prop).await?)
+    ) -> Result<SingleBlockRes> {
+        let result = base_array::update_elem::<Self>(db, category_id, prop_id, new_prop).await?;
+        Ok(SingleBlockRes {
+            status: "success",
+            data: BlockData { block: result },
+        })
     }
 
-    pub async fn remove_block(
-        db: &Database,
-        category_id: &str,
-        prop_id: &str,
-    ) -> Result<Vec<BlockModel>> {
-        Ok(base_array::remove_elem::<BlockService>(db, category_id, prop_id).await?)
+    pub async fn remove_block(db: &Database, category_id: &str, prop_id: &str) -> Result<()> {
+        base_array::remove_elem::<Self>(db, category_id, prop_id).await?;
+        Ok(())
     }
 }

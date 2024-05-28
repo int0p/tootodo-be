@@ -2,13 +2,13 @@ use mongodb::bson::oid::ObjectId;
 use mongodb::Database;
 use serde::{Deserialize, Serialize};
 
-use crate::domain::types::PropertyType;
-use crate::interface::dto::task::req::CreatePropertyReq;
-use crate::{domain::error::Result, interface::dto::category::req::UpdatePropertyReq};
+use crate::interface::dto::sub::property::{req::*, res::*};
 
 use crate::domain::{
     category::CategoryModel,
+    error::Result,
     repo::base_array::{self, MongoArrayRepo},
+    types::PropertyType,
 };
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -48,9 +48,14 @@ impl MongoArrayRepo for PropertyService {
     type ElemModel = PropertyModel;
     type UpdateElemReq = UpdatePropertyReq;
     type CreateElemReq = CreatePropertyReq;
+    type ElemRes = PropertyRes;
 
     const COLL_NAME: &'static str = "categories";
-    const ARR_NAME: &'static str = "properties";
+    const ARR_NAME: &'static str = "props";
+
+    fn convert_doc_to_response(doc: &PropertyModel) -> Result<Self::ElemRes> {
+        Ok(PropertyRes::from_model(doc))
+    }
 }
 
 impl PropertyService {
@@ -58,21 +63,39 @@ impl PropertyService {
         db: &Database,
         category_id: &str,
         prop_id: &str,
-    ) -> Result<PropertyModel> {
-        let doc = base_array::get_elem::<Self>(db, category_id, prop_id).await?;
-        Ok(doc)
+    ) -> Result<SinglePropertyRes> {
+        let result = base_array::get_elem::<Self>(db, category_id, prop_id).await?;
+        Ok(SinglePropertyRes {
+            status: "success",
+            data: PropertyData { prop: result },
+        })
     }
 
     pub async fn add_property(
         db: &Database,
         category_id: &str,
         new_prop: &CreatePropertyReq,
-    ) -> Result<Vec<PropertyModel>> {
-        Ok(base_array::add_elem::<Self>(db, category_id, new_prop, Some("prop_type")).await?)
+    ) -> Result<SinglePropertyRes> {
+        let result =
+            base_array::add_elem::<Self>(db, category_id, new_prop, Some("prop_type")).await?;
+        Ok(SinglePropertyRes {
+            status: "success",
+            data: PropertyData { prop: result },
+        })
     }
 
-    pub async fn fetch_properties(db: &Database, category_id: &str) -> Result<Vec<PropertyModel>> {
-        Ok(base_array::fetch_elems::<Self>(db, category_id).await?)
+    pub async fn fetch_properties(
+        db: &Database,
+        category_id: &str,
+        limit: i64,
+        page: i64,
+    ) -> Result<PropertyListRes> {
+        let results = base_array::fetch_elems::<Self>(db, category_id, limit, page).await?;
+        Ok(PropertyListRes {
+            status: "success",
+            results: results.len(),
+            props: results,
+        })
     }
 
     pub async fn update_property(
@@ -80,16 +103,16 @@ impl PropertyService {
         category_id: &str,
         prop_id: &str,
         new_prop: &UpdatePropertyReq,
-    ) -> Result<Vec<PropertyModel>> {
-        // TODO: property type변경 제한
-        Ok(base_array::update_elem::<Self>(db, category_id, prop_id, new_prop).await?)
+    ) -> Result<SinglePropertyRes> {
+        let result = base_array::update_elem::<Self>(db, category_id, prop_id, new_prop).await?;
+        Ok(SinglePropertyRes {
+            status: "success",
+            data: PropertyData { prop: result },
+        })
     }
 
-    pub async fn remove_property(
-        db: &Database,
-        category_id: &str,
-        prop_id: &str,
-    ) -> Result<Vec<PropertyModel>> {
-        Ok(base_array::remove_elem::<Self>(db, category_id, prop_id).await?)
+    pub async fn remove_property(db: &Database, category_id: &str, prop_id: &str) -> Result<()> {
+        base_array::remove_elem::<Self>(db, category_id, prop_id).await?;
+        Ok(())
     }
 }

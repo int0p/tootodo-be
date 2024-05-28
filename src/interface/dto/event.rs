@@ -40,7 +40,7 @@ pub mod req {
 }
 
 pub mod res {
-    use crate::domain::{sub::chat::MsgModel, types::ChatType};
+    use crate::domain::{event::EventModel, sub::chat::MsgModel, types::ChatType};
     use chrono::{DateTime, NaiveDate, Utc};
     use serde::Serialize;
     use uuid::Uuid;
@@ -65,6 +65,24 @@ pub mod res {
         pub location: Option<String>,
         pub createdAt: DateTime<Utc>,
         pub updatedAt: DateTime<Utc>,
+    }
+
+    impl EventRes {
+        pub fn from_model(event: &EventModel) -> Self {
+            Self {
+                id: event.id.to_hex(),
+                user: event.user,
+                title: event.title.to_owned(),
+                complete: event.complete.to_owned(),
+                start_date: event.start_date.to_owned(),
+                due_at: event.due_at.to_owned(),
+                location: event.location.to_owned(),
+                chat_type: event.chat_type.to_owned(),
+                chat_msgs: event.chat_msgs.to_owned(),
+                createdAt: event.createdAt,
+                updatedAt: event.updatedAt,
+            }
+        }
     }
 
     #[derive(Serialize, Debug)]

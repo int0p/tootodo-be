@@ -5,9 +5,10 @@ use chrono::{DateTime, Utc};
 use mongodb::bson::{self, doc, oid::ObjectId, Bson};
 use mongodb::Database;
 
-use crate::interface::dto::chat::req::{CreateMsgReq, UpdateMsgReq};
+use crate::domain::repo::CollInfo;
+use crate::interface::dto::sub::chat::req::{CreateMsgReq, UpdateMsgReq};
 
-use crate::interface::dto::chat::res::{MsgData, MsgListRes, MsgRes, SingleMsgRes};
+use crate::interface::dto::sub::chat::res::*;
 use crate::{
     domain::error::Result,
     domain::repo::{
@@ -33,11 +34,6 @@ pub struct MsgModel {
     pub chat_type: Option<ChatType>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub chat_msgs: Option<Vec<MsgModel>>,
-}
-
-pub trait CollInfo {
-    const COLL_NAME: &'static str;
-    const ARR_NAME: &'static str;
 }
 
 impl CollInfo for EventModel {
@@ -66,16 +62,8 @@ where
     type ElemRes = MsgRes;
     const COLL_NAME: &'static str = Model::COLL_NAME;
     const ARR_NAME: &'static str = Model::ARR_NAME;
-    fn convert_doc_to_response(doc: &Self::ElemModel) -> Result<Self::ElemRes> {
-        Ok(MsgRes {
-            id: doc.id.to_hex(),
-            msg_type: doc.msg_type,
-            content: doc.content.clone(),
-            created_at: doc.created_at,
-            booked: doc.booked,
-            chat_type: doc.chat_type,
-            chat_msgs: doc.chat_msgs.clone(),
-        })
+    fn convert_doc_to_response(doc: &MsgModel) -> Result<Self::ElemRes> {
+        Ok(MsgRes::from_model(doc))
     }
 }
 

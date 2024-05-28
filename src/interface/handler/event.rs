@@ -15,8 +15,8 @@ use crate::{
         sub::chat::ChatMsgService,
     },
     interface::dto::{
-        chat::req::{CreateMsgReq, UpdateMsgReq},
         event::req::{CreateEventReq, UpdateEventReq},
+        sub::chat::req::{CreateMsgReq, UpdateMsgReq},
         FilterOptions,
     },
     AppState,

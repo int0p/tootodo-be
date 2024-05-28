@@ -1,8 +1,8 @@
 pub mod req {
     use crate::domain::{
-        sub::task_block::BlockModel,
-        task::{PropertyValue, TaskModel},
-        types::{BlockType, ChatType, PropertyType},
+        sub::{task_block::BlockModel, task_propV::PropValueModel},
+        task::TaskModel,
+        types::{ChatType, PropertyType},
     };
     use chrono::{DateTime, NaiveDate, Utc};
     use mongodb::bson::{self, oid::ObjectId};
@@ -14,7 +14,9 @@ pub mod req {
     pub struct CreateTaskReq {
         pub user: Uuid,
         pub title: String,
-        pub category: ObjectId,
+        pub category_id: ObjectId,
+        pub category_color: String,
+        pub category_name: String,
         #[serde(skip_serializing_if = "Option::is_none")]
         pub subtasks: Option<Vec<TaskModel>>,
         #[serde(skip_serializing_if = "Option::is_none")]
@@ -30,107 +32,30 @@ pub mod req {
         #[serde(skip_serializing_if = "Option::is_none")]
         pub title: Option<String>,
         #[serde(skip_serializing_if = "Option::is_none")]
-        pub category: Option<ObjectId>,
+        pub category_id: Option<ObjectId>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub category_color: Option<String>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub category_name: Option<String>,
         #[serde(skip_serializing_if = "Option::is_none")]
         pub start_date: Option<NaiveDate>,
         #[serde(skip_serializing_if = "Option::is_none")]
         pub due_at: Option<DateTime<Utc>>,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        pub properties: Option<Vec<PropertyValue>>,
+
         #[serde(skip_serializing_if = "Option::is_none")]
         pub parent_id: Option<ObjectId>,
         #[serde(skip_serializing_if = "Option::is_none")]
         pub subtasks: Option<Vec<TaskModel>>,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        pub blocks: Option<Vec<BlockModel>>,
+
         #[serde(skip_serializing_if = "Option::is_none")]
         pub chat_type: Option<ChatType>,
-    }
-
-    // category
-    #[derive(Serialize, Deserialize, Debug)]
-    pub struct CreateCategoryReq {
-        pub user: Uuid,
-        pub name: String,
-        pub color: String,
-    }
-
-    #[derive(Serialize, Deserialize, Debug)]
-    pub struct UpdateCategoryReq {
-        pub user: Uuid,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        pub name: Option<String>,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        pub color: Option<String>,
-    }
-
-    #[derive(Serialize, Deserialize, Debug)]
-    pub struct FilterCategoryReq {
-        #[serde(with = "bson::serde_helpers::uuid_1_as_binary")]
-        pub user: Uuid,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        pub name: Option<String>,
-    }
-
-    // property
-    #[derive(Serialize, Deserialize, Debug)]
-    pub struct CreatePropertyReq {
-        pub user: Uuid,
-        pub name: String,
-        pub category_id: ObjectId,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        pub value: Option<Vec<String>>,
-        pub prop_type: PropertyType,
-    }
-
-    #[derive(Serialize, Deserialize, Debug)]
-    pub struct UpdatePropertyReq {
-        pub user: Uuid,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        pub name: Option<String>,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        pub value: Option<Vec<String>>,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        pub prop_type: Option<PropertyType>,
-    }
-
-    #[derive(Serialize, Deserialize, Debug)]
-    pub struct FilterPropertyReq {
-        #[serde(skip_serializing_if = "Option::is_none")]
-        pub name: Option<String>,
-    }
-
-    // block
-    #[derive(Serialize, Deserialize, Debug)]
-    pub struct CreateBlockReq {
-        pub src_task_id: ObjectId,
-        pub block_type: BlockType,
-    }
-
-    #[derive(Serialize, Deserialize, Debug)]
-    pub struct UpdateBlockReq {
-        #[serde(skip_serializing_if = "Option::is_none")]
-        pub src_task_id: Option<ObjectId>,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        pub block_type: Option<BlockType>,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        pub body: Option<String>,
-    }
-
-    #[derive(Serialize, Deserialize, Debug)]
-    pub struct FilterBlockReq {
-        #[serde(skip_serializing_if = "Option::is_none")]
-        pub src_task_id: Option<ObjectId>,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        pub block_type: Option<BlockType>,
     }
 }
 
 pub mod res {
     use crate::domain::{
-        sub::chat::MsgModel,
-        sub::task_block::BlockModel,
-        task::{PropertyValue, TaskModel},
+        sub::{chat::MsgModel, task_block::BlockModel, task_propV::PropValueModel},
+        task::TaskModel,
         types::ChatType,
     };
     use chrono::{DateTime, NaiveDate, Utc};
@@ -150,7 +75,7 @@ pub mod res {
         pub category_id: ObjectId,
         pub category_color: String,
         pub category_name: String,
-        pub proerties: Vec<PropertyValue>,
+        pub prop_values: Vec<PropValueModel>,
 
         pub blocks: Vec<BlockModel>,
 
@@ -162,6 +87,29 @@ pub mod res {
 
         pub createdAt: DateTime<Utc>,
         pub updatedAt: DateTime<Utc>,
+    }
+
+    impl TaskRes {
+        pub fn from_model(task: &TaskModel) -> Self {
+            Self {
+                id: task.id.to_hex(),
+                user: task.user,
+                title: task.title.to_owned(),
+                start_date: task.start_date.to_owned(),
+                due_at: task.due_at.to_owned(),
+                category_id: task.category_id.to_owned(),
+                category_color: task.category_color.to_owned(),
+                category_name: task.category_name.to_owned(),
+                prop_values: task.prop_values.clone(),
+                blocks: task.blocks.to_owned(),
+                subtasks: task.subtasks.to_owned(),
+                parent_id: task.parent_id.to_owned(),
+                chat_type: task.chat_type.to_owned(),
+                chat_msgs: task.chat_msgs.to_owned(),
+                createdAt: task.createdAt,
+                updatedAt: task.updatedAt,
+            }
+        }
     }
 
     #[derive(Serialize, Debug)]

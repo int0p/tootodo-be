@@ -1,7 +1,7 @@
 pub mod req {
+    use mongodb::bson::{self};
     use serde::{Deserialize, Serialize};
-
-    use crate::domain::types::{PropertyType, StatusType};
+    use uuid::Uuid;
 
     #[derive(Deserialize, Debug, Default)]
     pub struct FilterOptions {
@@ -12,34 +12,31 @@ pub mod req {
     // Category
     #[derive(Serialize, Deserialize, Debug)]
     pub struct CreateCategoryReq {
+        pub user: Uuid,
         pub name: String,
         pub color: String,
     }
 
-    #[allow(non_snake_case)]
     #[derive(Serialize, Deserialize, Debug)]
     pub struct UpdateCategoryReq {
+        pub user: Uuid,
         #[serde(skip_serializing_if = "Option::is_none")]
         pub name: Option<String>,
         #[serde(skip_serializing_if = "Option::is_none")]
         pub color: Option<String>,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        pub status: Option<StatusType>,
     }
 
     #[derive(Serialize, Deserialize, Debug)]
-    pub struct UpdatePropertyReq {
+    pub struct FilterCategoryReq {
+        #[serde(with = "bson::serde_helpers::uuid_1_as_binary")]
+        pub user: Uuid,
         #[serde(skip_serializing_if = "Option::is_none")]
         pub name: Option<String>,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        pub prop_type: Option<PropertyType>,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        pub options: Option<Vec<String>>,
     }
 }
 
 pub mod res {
-    use crate::domain::{sub::property::PropertyModel, types::StatusType};
+    use crate::domain::{category::CategoryModel, sub::property::PropertyModel, types::StatusType};
     use chrono::{DateTime, Utc};
     use serde::Serialize;
     use uuid::Uuid;
@@ -52,9 +49,24 @@ pub mod res {
         pub name: String,
         pub color: String,
         pub status: StatusType,
-        pub properties: Vec<PropertyModel>,
+        pub props: Vec<PropertyModel>,
         pub createdAt: DateTime<Utc>,
         pub updatedAt: DateTime<Utc>,
+    }
+
+    impl CategoryRes {
+        pub fn from_model(category: &CategoryModel) -> Self {
+            Self {
+                id: category.id.to_hex(),
+                user: category.user,
+                name: category.name.to_owned(),
+                color: category.color.to_owned(),
+                props: category.props.to_owned(),
+                createdAt: category.createdAt,
+                updatedAt: category.updatedAt,
+                status: category.status.to_owned(),
+            }
+        }
     }
 
     #[derive(Serialize, Debug)]

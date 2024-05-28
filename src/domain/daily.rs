@@ -3,7 +3,7 @@ use mongodb::bson::{self, oid::ObjectId};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use super::sub::daily_item::{DailyEvent, DailyHabit, DailyTask, TimerResultModel};
+use super::sub::daily_item::{DailyEventModel, DailyHabitModel, DailyTaskModel, TimerResultModel};
 
 #[allow(non_snake_case)]
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -15,9 +15,9 @@ pub struct DailyModel {
     pub date: NaiveDate,
     pub diary: String,
     pub feedback: i8,
-    pub tasks: Vec<DailyTask>,
-    pub events: Vec<DailyEvent>,
-    pub habits: Vec<DailyHabit>,
+    pub tasks: Vec<DailyTaskModel>,
+    pub events: Vec<DailyEventModel>,
+    pub habits: Vec<DailyHabitModel>,
     pub timer_results: Vec<TimerResultModel>,
     #[serde(with = "bson::serde_helpers::chrono_datetime_as_bson_datetime")]
     pub createdAt: DateTime<Utc>,

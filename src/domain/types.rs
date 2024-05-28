@@ -60,3 +60,10 @@ pub enum BlockType {
     Drawing,
     Table,
 }
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(untagged)]
+pub enum PropValueType {
+    Multiple(Vec<String>),
+    Single(String),
+}

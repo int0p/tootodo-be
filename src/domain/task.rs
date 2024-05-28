@@ -4,8 +4,8 @@ use std::str::FromStr;
 
 use super::{
     category::CategoryModel,
-    sub::{chat::MsgModel, task_block::BlockModel},
-    types::{ChatType, PropertyType},
+    sub::{chat::MsgModel, task_block::BlockModel, task_propV::PropValueModel},
+    types::{ChatType, PropValueType, PropertyType},
 };
 
 use crate::{
@@ -40,7 +40,7 @@ pub struct TaskModel {
     pub category_id: ObjectId,
     pub category_color: String,
     pub category_name: String,
-    pub properties: Vec<PropertyValue>,
+    pub prop_values: Vec<PropValueModel>,
     pub blocks: Vec<BlockModel>,
     pub subtasks: Vec<TaskModel>,
     pub parent_id: Option<ObjectId>,
@@ -64,7 +64,7 @@ impl TaskModel {
             category_id: original_task.category_id,
             category_color: original_task.category_color.clone(),
             category_name: original_task.category_name.clone(),
-            properties: original_task.properties.clone(),
+            prop_values: original_task.prop_values.clone(),
             blocks: vec![BlockModel::new(original_task.id)],
             subtasks: vec![],
             parent_id: Some(original_task.id),
@@ -73,54 +73,6 @@ impl TaskModel {
             createdAt: Utc::now(),
             updatedAt: Utc::now(),
         }
-    }
-}
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct PropertyValue {
-    pub prop_id: ObjectId,
-    pub prop_name: String,
-    pub value: Option<PropertyValueData>,
-    pub prop_type: PropertyType,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-#[serde(untagged)]
-pub enum PropertyValueData {
-    Multiple(Vec<String>),
-    Single(String),
-}
-
-impl PropertyValue {
-    pub fn new(
-        prop_id: ObjectId,
-        prop_name: String,
-        prop_type: PropertyType,
-        value: PropertyValueData,
-    ) -> Result<Self> {
-        let value =
-            match (&prop_type, &value) {
-                (PropertyType::MultiSelect, PropertyValueData::Multiple(_))
-                | (PropertyType::SingleSelect, PropertyValueData::Multiple(_)) => Some(value),
-                (PropertyType::MultiSelect, PropertyValueData::Single(_))
-                | (PropertyType::SingleSelect, PropertyValueData::Single(_)) => {
-                    return Err(TypedError(
-                        "MultiSelect or SingleSelect types must have Multiple(Vec<String>) value"
-                            .to_string(),
-                    ))
-                }
-                (_, PropertyValueData::Single(_)) => Some(value),
-                (_, PropertyValueData::Multiple(_)) => return Err(TypedError(
-                    "Only MultiSelect or SingleSelect types can have Multiple(Vec<String>) value"
-                        .to_string(),
-                )),
-            };
-
-        Ok(PropertyValue {
-            prop_id,
-            prop_name,
-            prop_type,
-            value,
-        })
     }
 }
 
@@ -134,24 +86,7 @@ impl MongoRepo for TaskService {
     type ModelResponse = TaskRes;
 
     fn convert_doc_to_response(task: &TaskModel) -> Result<TaskRes> {
-        Ok(TaskRes {
-            id: task.id.to_hex(),
-            user: task.user,
-            title: task.title.to_owned(),
-            start_date: task.start_date.to_owned(),
-            due_at: task.due_at.to_owned(),
-            category_id: task.category_id.to_owned(),
-            category_color: task.category_color.to_owned(),
-            category_name: task.category_name.to_owned(),
-            proerties: task.properties.to_owned(),
-            blocks: task.blocks.to_owned(),
-            subtasks: task.subtasks.to_owned(),
-            parent_id: task.parent_id.to_owned(),
-            chat_type: task.chat_type.to_owned(),
-            chat_msgs: task.chat_msgs.to_owned(),
-            createdAt: task.createdAt,
-            updatedAt: task.updatedAt,
-        })
+        Ok(TaskRes::from_model(task))
     }
 
     fn create_doc<CreateTaskReq: Serialize>(user: &Uuid, body: &CreateTaskReq) -> Result<Document> {
@@ -210,10 +145,10 @@ impl TaskService {
             .expect("Failed to fetch category")
             .expect("Category not found");
 
-        let properties: Vec<PropertyValue> = category
-            .properties
+        let properties: Vec<PropValueModel> = category
+            .props
             .iter()
-            .map(|prop| PropertyValue {
+            .map(|prop| PropValueModel {
                 prop_id: prop.id,
                 prop_name: prop.name.clone(),
                 value: None,
@@ -221,23 +156,7 @@ impl TaskService {
             })
             .collect();
 
-        self.update_task(
-            db,
-            &task_result.id,
-            &UpdateTaskReq {
-                properties: Some(properties),
-                title: None,
-                category: None,
-                start_date: None,
-                due_at: None,
-                parent_id: None,
-                subtasks: None,
-                blocks: None,
-                chat_type: None,
-            },
-            user,
-        )
-        .await?;
+        // TODO: Property 정보 추가.
 
         Ok(SingleTaskRes {
             status: "success",
@@ -277,7 +196,7 @@ impl TaskService {
         db: &Database,
         id: &str,
         prop_id: &str,
-        value: &PropertyValueData,
+        value: &PropValueType,
         user: &Uuid,
     ) -> Result<SingleTaskRes> {
         let task_oid = ObjectId::from_str(id).map_err(DBError::MongoGetOidError)?;
@@ -295,7 +214,7 @@ impl TaskService {
             Err(e) => return Err(DB(DBError::MongoQueryError(e))),
         };
 
-        let property = match task.properties.iter().find(|p| p.prop_id == prop_oid) {
+        let property = match task.prop_values.iter().find(|p| p.prop_id == prop_oid) {
             Some(prop) => prop,
             None => return Err(NotFoundError(prop_oid.to_string())),
         };
@@ -305,7 +224,7 @@ impl TaskService {
         // set new value
         let new_value = match prop_type {
             PropertyType::MultiSelect | PropertyType::SingleSelect => {
-                if let PropertyValueData::Multiple(_) = value {
+                if let PropValueType::Multiple(_) = value {
                     value
                 } else {
                     return Err(TypedError(
@@ -315,7 +234,7 @@ impl TaskService {
                 }
             }
             _ => {
-                if let PropertyValueData::Single(_) = value {
+                if let PropValueType::Single(_) = value {
                     value
                 } else {
                     return Err(TypedError(

@@ -42,16 +42,7 @@ impl MongoRepo for HabitService {
     type ModelResponse = HabitRes;
 
     fn convert_doc_to_response(habit: &HabitModel) -> Result<HabitRes> {
-        let habit_response = HabitRes {
-            user: habit.user,
-            id: habit.id.to_hex(),
-            name: habit.name.to_owned(),
-            icon: habit.icon.to_owned(),
-            status: habit.status.to_owned(),
-            createdAt: habit.createdAt,
-            updatedAt: habit.updatedAt,
-        };
-        Ok(habit_response)
+        Ok(HabitRes::from_model(habit))
     }
 
     fn create_doc<CreateHabitReq: Serialize>(

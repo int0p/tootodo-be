@@ -49,20 +49,7 @@ impl MongoRepo for EventService {
     type ModelResponse = EventRes;
 
     fn convert_doc_to_response(event: &EventModel) -> Result<EventRes> {
-        let event_response = EventRes {
-            user: event.user,
-            id: event.id.to_hex(),
-            title: event.title.to_owned(),
-            complete: event.complete.to_owned(),
-            start_date: event.start_date.to_owned(),
-            due_at: event.due_at.to_owned(),
-            location: event.location.to_owned(),
-            chat_type: event.chat_type.to_owned(),
-            chat_msgs: event.chat_msgs.to_owned(),
-            createdAt: event.createdAt,
-            updatedAt: event.updatedAt,
-        };
-        Ok(event_response)
+        Ok(EventRes::from_model(event))
     }
 
     fn create_doc<CreateEventReq: Serialize>(

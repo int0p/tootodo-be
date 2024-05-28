@@ -41,16 +41,7 @@ impl MongoRepo for MemoService {
     type ModelResponse = MemoRes;
 
     fn convert_doc_to_response(memo: &MemoModel) -> Result<MemoRes> {
-        let memo_response = MemoRes {
-            user: memo.user,
-            id: memo.id.to_hex(),
-            title: memo.title.to_owned(),
-            content: memo.content.to_owned(),
-            color: memo.color.to_owned(),
-            createdAt: memo.createdAt,
-            updatedAt: memo.updatedAt,
-        };
-        Ok(memo_response)
+        Ok(MemoRes::from_model(memo))
     }
 
     fn create_doc<CreateMemoReq: Serialize>(user: &Uuid, body: &CreateMemoReq) -> Result<Document> {
