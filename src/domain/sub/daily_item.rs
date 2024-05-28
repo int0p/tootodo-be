@@ -54,30 +54,35 @@ pub trait ElemInfo {
     const ARR_NAME: &'static str;
     type UpdateReq: Serialize;
     type CreateReq: Serialize;
+    type Res: DeserializeOwned + Send + Sync + Serialize;
 }
 
 impl ElemInfo for TimerResultModel {
     const ARR_NAME: &'static str = "timer_results";
     type UpdateReq = UpdateTimerResultReq;
     type CreateReq = CreateTimerResultReq;
+    type Res = TimerResultRes;
 }
 
 impl ElemInfo for DailyTask {
     const ARR_NAME: &'static str = "tasks";
     type UpdateReq = UpdateDailyTaskReq;
     type CreateReq = CreateDailyTaskReq;
+    type Res = DailyTaskRes;
 }
 
 impl ElemInfo for DailyEvent {
     const ARR_NAME: &'static str = "events";
     type UpdateReq = UpdateDailyEventReq;
     type CreateReq = CreateDailyEventReq;
+    type Res = DailyEventRes;
 }
 
 impl ElemInfo for DailyHabit {
     const ARR_NAME: &'static str = "habits";
     type UpdateReq = UpdateDailyHabitReq;
     type CreateReq = CreateDailyHabitReq;
+    type Res = DailyHabitRes;
 }
 
 // daily collection의 tasks, habits, events, timer_results 배열필드에 각각의 element model을 CRUD하는 서비스
@@ -90,10 +95,16 @@ where
 
     type UpdateElemReq = Elem::UpdateReq;
     type CreateElemReq = Elem::CreateReq;
+    type ElemRes = Elem::Res;
 
     const COLL_NAME: &'static str = "daily";
 
     const ARR_NAME: &'static str = Elem::ARR_NAME;
+
+    fn convert_doc_to_response(doc: &Self::ElemModel) -> Result<Self::ElemRes> {
+        let res: Self::ElemRes = bson::ser::from_bson(bson::ser::to_document(doc)?).unwrap();
+        Ok(res)
+    }
 }
 
 impl<Elem> DailyItemService<Elem>

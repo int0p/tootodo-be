@@ -29,14 +29,18 @@ pub fn event_router(app_state: Arc<AppState>) -> Router {
                 .patch(update_event_handler)
                 .delete(delete_event_handler),
         )
-        .route("/events/:event_id/chat", post(add_msg_handler))
+        .route("/events/:event_id/chat/", post(add_msg_handler))
         .route("/events/:event_id/chat", get(fetch_msgs_handler))
-        .route("/events/:event_id/chat/:msg_id", delete(remove_msg_handler))
-        .route("/events/:event_id/chat/:msg_id", put(update_msg_handler))
         .route(
-            "/events/:event_id/chat/:msg_id/add_chat",
-            post(add_chat_to_msg_handler),
+            "/events/:event_id/chat/:msg_id",
+            get(get_msg_handler)
+                .delete(remove_msg_handler)
+                .put(update_msg_handler),
         )
+        // .route(
+        //     "/events/:event_id/chat/:msg_id/add_chat",
+        //     post(add_chat_to_msg_handler),
+        // )
         .with_state(app_state)
 }
 

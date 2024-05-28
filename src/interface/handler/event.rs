@@ -12,11 +12,12 @@ use crate::{
     domain::{
         error::{Error, Result},
         event::{EventModel, EventService},
-        sub::chat::{ChatMsgService, MsgModel},
+        sub::chat::ChatMsgService,
     },
     interface::dto::{
-        chat::req::UpdateMsgReq,
-        event::req::{CreateEventReq, FilterOptions, UpdateEventReq},
+        chat::req::{CreateMsgReq, UpdateMsgReq},
+        event::req::{CreateEventReq, UpdateEventReq},
+        FilterOptions,
     },
     AppState,
 };
@@ -97,29 +98,44 @@ pub async fn delete_event_handler(
 }
 
 // chat
+pub async fn get_msg_handler(
+    State(app_state): State<Arc<AppState>>,
+    Path((event_id, msg_id)): Path<(String, String)>,
+) -> Result<impl IntoResponse> {
+    match ChatMsgService::<EventModel>::get_msg(&app_state.mongodb.db, &event_id, &msg_id)
+        .await
+        .map_err(Error::from)
+    {
+        Ok(res) => Ok(Json(res)),
+        Err(e) => Err(e),
+    }
+}
+
 pub async fn add_msg_handler(
     State(app_state): State<Arc<AppState>>,
     Path((event_id,)): Path<(String,)>,
-    Json(new_msg): Json<MsgModel>,
+    Json(new_msg): Json<CreateMsgReq>,
 ) -> Result<impl IntoResponse> {
-    // Call the add_msg function from the repository
-    let messages =
-        ChatMsgService::<EventModel>::add_msg(&app_state.mongodb.db, &event_id, &new_msg)
-            .await
-            .unwrap();
-    Json(messages)
+    match ChatMsgService::<EventModel>::add_msg(&app_state.mongodb.db, &event_id, &new_msg)
+        .await
+        .map_err(Error::from)
+    {
+        Ok(res) => Ok(Json(res)),
+        Err(e) => Err(e),
+    }
 }
 
 pub async fn remove_msg_handler(
     State(app_state): State<Arc<AppState>>,
     Path((event_id, msg_id)): Path<(String, String)>,
 ) -> Result<impl IntoResponse> {
-    // Call the remove_msg function from the repository
-    let messages =
-        ChatMsgService::<EventModel>::remove_msg(&app_state.mongodb.db, &event_id, &msg_id)
-            .await
-            .unwrap();
-    Json(messages)
+    match ChatMsgService::<EventModel>::remove_msg(&app_state.mongodb.db, &event_id, &msg_id)
+        .await
+        .map_err(Error::from)
+    {
+        Ok(res) => Ok(Json(res)),
+        Err(e) => Err(e),
+    }
 }
 
 pub async fn update_msg_handler(
@@ -127,37 +143,48 @@ pub async fn update_msg_handler(
     Path((event_id, msg_id)): Path<(String, String)>,
     Json(update_req): Json<UpdateMsgReq>,
 ) -> Result<impl IntoResponse> {
-    // Call the update_msg function from the repository
-    let messages = ChatMsgService::<EventModel>::update_msg(
+    match ChatMsgService::<EventModel>::update_msg(
         &app_state.mongodb.db,
         &event_id,
         &msg_id,
         &update_req,
     )
     .await
-    .unwrap();
-    Json(messages)
+    .map_err(Error::from)
+    {
+        Ok(res) => Ok(Json(res)),
+        Err(e) => Err(e),
+    }
 }
 
 pub async fn fetch_msgs_handler(
+    opts: Option<Query<FilterOptions>>,
     State(app_state): State<Arc<AppState>>,
     Path((event_id,)): Path<(String,)>,
 ) -> Result<impl IntoResponse> {
-    // Call the fetch_msgs function from the repository
-    let messages = ChatMsgService::<EventModel>::fetch_msgs(&app_state.mongodb.db, &event_id)
+    let Query(opts) = opts.unwrap_or_default();
+
+    let limit = opts.limit.unwrap_or(10) as i64;
+    let page = opts.page.unwrap_or(1) as i64;
+
+    match ChatMsgService::<EventModel>::fetch_msgs(&app_state.mongodb.db, &event_id, limit, page)
         .await
-        .unwrap();
-    Json(messages)
+        .map_err(Error::from)
+    {
+        Ok(res) => Ok(Json(res)),
+        Err(e) => Err(e),
+    }
 }
 
-pub async fn add_chat_to_msg_handler(
-    State(app_state): State<Arc<AppState>>,
-    Path((event_id, msg_id)): Path<(String, String)>,
-) -> Result<impl IntoResponse> {
-    // Call the add_chat_to_msg function from the repository
-    let messages =
-        ChatMsgService::<EventModel>::add_chat_to_msg(&app_state.mongodb.db, &event_id, &msg_id)
-            .await
-            .unwrap();
-    Json(messages)
-}
+// TODO: add_chat_to_msg함수 구현된다면..
+// pub async fn add_chat_to_msg_handler(
+//     State(app_state): State<Arc<AppState>>,
+//     Path((event_id, msg_id)): Path<(String, String)>,
+// ) -> Result<impl IntoResponse> {
+//     // Call the add_chat_to_msg function from the repository
+//     let messages =
+//         ChatMsgService::<EventModel>::add_chat_to_msg(&app_state.mongodb.db, &event_id, &msg_id)
+//             .await
+//             .unwrap();
+//     Json(messages)
+// }

@@ -138,12 +138,6 @@ pub mod res {
     use serde::Serialize;
     use uuid::Uuid;
 
-    #[derive(Serialize)]
-    pub struct GenericRes {
-        pub status: String,
-        pub message: String,
-    }
-
     #[allow(non_snake_case)]
     #[derive(Serialize, Debug)]
     pub struct TaskRes {

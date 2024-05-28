@@ -21,6 +21,7 @@ pub enum Error {
     WrongUserAccess,
 
     TypedError(String),
+    NotRemovedError(String),
 }
 
 impl IntoResponse for Error {
@@ -29,6 +30,13 @@ impl IntoResponse for Error {
             Error::DB(e) => {
                 return e.into_response();
             }
+            Error::NotRemovedError(id) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                ErrorResponse {
+                    status: "fail".to_string(),
+                    message: format!("ID: {} not removed", id),
+                },
+            ),
             Error::MongoDuplicateError(_) => (
                 StatusCode::CONFLICT,
                 ErrorResponse {

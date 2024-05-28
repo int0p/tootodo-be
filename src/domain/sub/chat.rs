@@ -7,11 +7,12 @@ use mongodb::Database;
 
 use crate::interface::dto::chat::req::{CreateMsgReq, UpdateMsgReq};
 
+use crate::interface::dto::chat::res::{MsgData, MsgListRes, MsgRes, SingleMsgRes};
 use crate::{
     domain::error::Result,
     domain::repo::{
         base_array::{self, MongoArrayRepo},
-        utils::{get_m_elems, update_mdoc_by_id},
+        utils::update_doc_ret_doc,
     },
     infra::db::error::Error as DBError,
 };
@@ -22,6 +23,7 @@ use crate::domain::types::{ChatType, MsgType};
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct MsgModel {
+    #[serde(rename = "_id")]
     pub id: ObjectId,
     pub msg_type: MsgType,
     pub content: String,
@@ -61,32 +63,62 @@ where
     type ElemModel = MsgModel;
     type UpdateElemReq = UpdateMsgReq;
     type CreateElemReq = CreateMsgReq;
+    type ElemRes = MsgRes;
     const COLL_NAME: &'static str = Model::COLL_NAME;
     const ARR_NAME: &'static str = Model::ARR_NAME;
+    fn convert_doc_to_response(doc: &Self::ElemModel) -> Result<Self::ElemRes> {
+        Ok(MsgRes {
+            id: doc.id.to_hex(),
+            msg_type: doc.msg_type,
+            content: doc.content.clone(),
+            created_at: doc.created_at,
+            booked: doc.booked,
+            chat_type: doc.chat_type,
+            chat_msgs: doc.chat_msgs.clone(),
+        })
+    }
 }
 
 impl<Model> ChatMsgService<Model>
 where
     Model: DeserializeOwned + Serialize + Unpin + Send + Sync + CollInfo,
 {
-    pub async fn get_msg(db: &Database, src_id: &str, msg_id: &str) -> Result<MsgModel> {
-        Ok(base_array::get_elem::<Self>(db, src_id, msg_id).await?)
+    pub async fn get_msg(db: &Database, src_id: &str, msg_id: &str) -> Result<SingleMsgRes> {
+        let result = base_array::get_elem::<Self>(db, src_id, msg_id).await?;
+        Ok(SingleMsgRes {
+            status: "success",
+            data: MsgData { msg: result },
+        })
     }
 
     pub async fn add_msg(
         db: &Database,
         src_id: &str,
         new_msg: &CreateMsgReq,
-    ) -> Result<Vec<MsgModel>> {
-        Ok(base_array::add_elem::<Self>(db, src_id, new_msg, Some("booked")).await?)
+    ) -> Result<SingleMsgRes> {
+        let result = base_array::add_elem::<Self>(db, src_id, new_msg, Some("booked")).await?;
+        Ok(SingleMsgRes {
+            status: "success",
+            data: MsgData { msg: result },
+        })
     }
 
-    pub async fn fetch_msgs(db: &Database, src_id: &str) -> Result<Vec<MsgModel>> {
-        Ok(base_array::fetch_elems::<Self>(db, src_id).await?)
+    pub async fn fetch_msgs(
+        db: &Database,
+        src_id: &str,
+        limit: i64,
+        page: i64,
+    ) -> Result<MsgListRes> {
+        let results = base_array::fetch_elems::<Self>(db, src_id, limit, page).await?;
+        Ok(MsgListRes {
+            status: "success",
+            results: results.len(),
+            msgs: results,
+        })
     }
 
-    pub async fn remove_msg(db: &Database, src_id: &str, msg_id: &str) -> Result<Vec<MsgModel>> {
-        Ok(base_array::remove_elem::<Self>(db, src_id, msg_id).await?)
+    pub async fn remove_msg(db: &Database, src_id: &str, msg_id: &str) -> Result<()> {
+        base_array::remove_elem::<Self>(db, src_id, msg_id).await
     }
 
     pub async fn update_msg(
@@ -94,40 +126,50 @@ where
         src_id: &str,
         msg_id: &str,
         update_msg: &UpdateMsgReq,
-    ) -> Result<Vec<MsgModel>> {
-        Ok(base_array::update_elem::<Self>(db, src_id, msg_id, update_msg).await?)
+    ) -> Result<SingleMsgRes> {
+        let result = base_array::update_elem::<Self>(db, src_id, msg_id, update_msg).await?;
+        Ok(SingleMsgRes {
+            status: "success",
+            data: MsgData { msg: result },
+        })
     }
 
-    pub async fn add_chat_to_msg(
-        db: &Database,
-        src_id: &str,
-        msg_id: &str,
-    ) -> Result<Vec<MsgModel>> {
-        let coll = db.collection::<Model>(Self::COLL_NAME);
+    // TODO: 그냥 update_msg함수로 될 것 같은데?
+    // pub async fn add_chat_to_msg(
+    //     db: &Database,
+    //     src_id: &str,
+    //     msg_id: &str,
+    // ) -> Result<SingleMsgRes> {
+    //     let coll = db.collection::<Model>(Self::COLL_NAME);
 
-        let oid = ObjectId::from_str(src_id).map_err(DBError::MongoGetOidError)?;
+    //     let oid = ObjectId::from_str(src_id).map_err(DBError::MongoGetOidError)?;
 
-        let update_doc = doc! {
-            "$push": { "chat_msgs.$[msg].chat_type": bson::to_bson(&ChatType::Ask).map_err(DBError::MongoSerializeBsonError)? },
-            "$set": { "updatedAt": Bson::DateTime(Utc::now().into()) }
-        };
+    //     let update_doc = doc! {
+    //         "$push": { "chat_msgs.$[msg].chat_type": bson::to_bson(&ChatType::Ask).map_err(DBError::MongoSerializeBsonError)? },
+    //         "$set": { "updatedAt": Bson::DateTime(Utc::now().into()) }
+    //     };
 
-        let array_filters =
-            bson::doc! { "msg._id": ObjectId::from_str(msg_id).map_err(DBError::MongoGetOidError)?};
+    //     let array_filters =
+    //         bson::doc! { "msg._id": ObjectId::from_str(msg_id).map_err(DBError::MongoGetOidError)?};
 
-        match update_mdoc_by_id(
-            &coll,
-            &oid,
-            Some(array_filters),
-            update_doc,
-            doc! { "_id": oid },
-        )
-        .await
-        {
-            Ok(updated_doc) => get_m_elems("chat_msgs", &updated_doc).await,
-            Err(e) => Err(e),
-        }
-    }
+    //     let result = match update_mdoc_by_id(
+    //         &coll,
+    //         &oid,
+    //         Some(array_filters),
+    //         update_doc,
+    //         doc! { "_id": oid },
+    //     )
+    //     .await
+    //     {
+    //         Ok(updated_doc) => get_m_elems("chat_msgs", &updated_doc).await?,
+    //         Err(e) => Err(e),
+    //     };
+
+    //     Ok(SingleMsgRes {
+    //         status: "success",
+    //         data: MsgData { msg: result },
+    //     })
+    // }
 }
 
 // #[cfg(test)]

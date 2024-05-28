@@ -13,7 +13,7 @@ use uuid::Uuid;
 use crate::domain::error::{Error::*, Result};
 use crate::infra::db::error::Error as DBError;
 
-use super::utils::{find_mdoc_by_id, update_mdoc_by_id};
+use super::utils::{find_mdoc_by_id, update_doc_ret_doc, update_doc_ret_model};
 
 pub trait MongoRepo {
     type Model;
@@ -33,7 +33,7 @@ pub async fn fetch<S>(
 ) -> Result<Vec<S::ModelResponse>>
 where
     S: MongoRepo,
-    S::Model: DeserializeOwned + Unpin + Send + Sync,
+    S::Model: DeserializeOwned + Serialize + Unpin + Send + Sync,
 {
     let coll = db.collection::<S::Model>(S::COLL_NAME);
     // let doc_coll = db.collection::<Document>(S::DOC_COLL_NAME);
@@ -46,7 +46,7 @@ where
     let mut cursor = coll
         .find(doc! {"user": user}, find_options)
         .await
-        .map_err(DBError::MongoQueryError)?;
+        .map_err(|e| DBError::MongoQueryError(e))?;
 
     let mut json_result: Vec<S::ModelResponse> = Vec::new();
     while let Some(doc) = cursor.next().await {
@@ -63,7 +63,7 @@ pub async fn create<S, Schema>(
 ) -> Result<S::ModelResponse>
 where
     S: MongoRepo,
-    S::Model: DeserializeOwned + Unpin + Send + Sync,
+    S::Model: DeserializeOwned + Serialize + Unpin + Send + Sync,
     Schema: Serialize,
 {
     let coll = db.collection::<S::Model>(S::COLL_NAME);
@@ -110,12 +110,12 @@ where
 pub async fn get<S>(db: &Database, id: &str, user: &Uuid) -> Result<S::ModelResponse>
 where
     S: MongoRepo,
-    S::Model: DeserializeOwned + Unpin + Send + Sync,
+    S::Model: DeserializeOwned + Serialize + Unpin + Send + Sync,
 {
     let coll = db.collection::<S::Model>(S::COLL_NAME);
 
     // model의 id를 ObjectId로 변환
-    let oid = ObjectId::from_str(id).map_err(DBError::MongoGetOidError)?;
+    let oid = ObjectId::from_str(id).map_err(|e| DBError::MongoGetOidError(e))?;
 
     // id를 이용해 문서를 찾음.
     let doc = find_mdoc_by_id(&coll, &oid, doc! {"_id": oid, "user":user}).await?;
@@ -131,17 +131,17 @@ pub async fn update<S, Schema>(
 ) -> Result<S::ModelResponse>
 where
     S: MongoRepo,
-    S::Model: DeserializeOwned + Unpin + Send + Sync,
+    S::Model: DeserializeOwned + Serialize + Unpin + Send + Sync,
     Schema: Serialize,
 {
     let coll = db.collection::<S::Model>(S::COLL_NAME);
 
-    let oid = ObjectId::from_str(id).map_err(DBError::MongoGetOidError)?;
+    let oid = ObjectId::from_str(id).map_err(|e| DBError::MongoGetOidError(e))?;
 
     let mut update_doc = bson::to_document(body).map_err(DBError::MongoSerializeBsonError)?;
     update_doc.insert("updatedAt", Bson::DateTime(Utc::now().into()));
 
-    let doc = update_mdoc_by_id(
+    let doc = update_doc_ret_model(
         &coll,
         &oid,
         None,
@@ -158,7 +158,7 @@ where
 pub async fn delete<S: MongoRepo>(db: &Database, id: &str) -> Result<()> {
     let doc_coll = db.collection::<Document>(S::DOC_COLL_NAME);
 
-    let oid = ObjectId::from_str(id).map_err(DBError::MongoGetOidError)?;
+    let oid = ObjectId::from_str(id).map_err(|e| DBError::MongoGetOidError(e))?;
     let filter = doc! {"_id": oid };
 
     let result = doc_coll

@@ -48,6 +48,7 @@ impl MongoArrayRepo for PropertyService {
     type ElemModel = PropertyModel;
     type UpdateElemReq = UpdatePropertyReq;
     type CreateElemReq = CreatePropertyReq;
+
     const COLL_NAME: &'static str = "categories";
     const ARR_NAME: &'static str = "properties";
 }
