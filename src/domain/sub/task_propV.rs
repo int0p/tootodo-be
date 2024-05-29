@@ -14,8 +14,9 @@ use crate::interface::dto::sub::task_propV::res::*;
 pub struct PropValueModel {
     pub prop_id: ObjectId,
     pub prop_name: String,
-    pub value: Option<PropValueType>,
     pub prop_type: PropertyType,
+
+    pub values: Option<PropValueType>,
 }
 
 impl PropValueModel {
@@ -47,7 +48,7 @@ impl PropValueModel {
             prop_id,
             prop_name,
             prop_type,
-            value,
+            values: value,
         })
     }
 }
@@ -85,9 +86,11 @@ impl PropValueService {
     pub async fn add_propV(
         db: &Database,
         category_id: &str,
-        new_prop: &CreatePropValueReq,
+        mut new_propV: CreatePropValueReq,
     ) -> Result<SinglePropValueRes> {
-        let result = base_array::add_elem::<Self>(db, category_id, new_prop, None).await?;
+        new_propV.value = validate_value(&new_propV.prop_type, &new_propV.value)?;
+
+        let result = base_array::add_elem::<Self>(db, category_id, &new_propV, None).await?;
         Ok(SinglePropValueRes {
             status: "success",
             data: PropValueData { propV: result },
@@ -124,5 +127,30 @@ impl PropValueService {
     pub async fn remove_propV(db: &Database, category_id: &str, prop_id: &str) -> Result<()> {
         base_array::remove_elem::<Self>(db, category_id, prop_id).await?;
         Ok(())
+    }
+}
+
+fn validate_value(prop_type: &PropertyType, value: &PropValueType) -> Result<PropValueType> {
+    match prop_type {
+        PropertyType::MultiSelect | PropertyType::SingleSelect => {
+            if let PropValueType::Multiple(_) = value {
+                Ok(value.clone())
+            } else {
+                Err(TypedError(
+                    "MultiSelect or SingleSelect types must have Multiple(Vec<String>) value"
+                        .to_string(),
+                ))
+            }
+        }
+        _ => {
+            if let PropValueType::Single(_) = value {
+                Ok(value.clone())
+            } else {
+                Err(TypedError(
+                    "Non-MultiSelect or SingleSelect types must have Single(String) value"
+                        .to_string(),
+                ))
+            }
+        }
     }
 }

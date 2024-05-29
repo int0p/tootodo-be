@@ -4,17 +4,26 @@ use std::str::FromStr;
 
 use super::{
     category::CategoryModel,
-    sub::{chat::MsgModel, task_block::BlockModel, task_propV::PropValueModel},
+    sub::{
+        chat::MsgModel,
+        task_block::BlockModel,
+        task_propV::{PropValueModel, PropValueService},
+    },
     types::{ChatType, PropValueType, PropertyType},
 };
 
 use crate::{
-    domain::error::{Error::*, Result},
-    domain::repo::base::{self, MongoRepo},
+    domain::{
+        error::{Error::*, Result},
+        repo::base::{self, MongoRepo},
+    },
     infra::db::error::Error as DBError,
-    interface::dto::task::{
-        req::{CreateTaskReq, UpdateTaskReq},
-        res::{SingleTaskRes, TaskData, TaskListRes, TaskRes},
+    interface::dto::{
+        sub::task_propV::{req::UpdatePropValueReq, res::PropValueListRes},
+        task::{
+            req::{CreateTaskReq, UpdateTaskReq},
+            res::{SingleTaskRes, TaskData, TaskListRes, TaskRes},
+        },
     },
 };
 
@@ -37,16 +46,21 @@ pub struct TaskModel {
     pub title: String,
     pub start_date: Option<NaiveDate>,
     pub due_at: Option<DateTime<Utc>>,
+
     pub category_id: ObjectId,
     pub category_color: String,
     pub category_name: String,
+
     pub prop_values: Vec<PropValueModel>,
+
     pub blocks: Vec<BlockModel>,
     pub subtasks: Vec<TaskModel>,
     pub parent_id: Option<ObjectId>,
+
     pub chat_type: ChatType,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub chat_msgs: Option<Vec<MsgModel>>,
+
     #[serde(with = "bson::serde_helpers::chrono_datetime_as_bson_datetime")]
     pub createdAt: DateTime<Utc>,
     #[serde(with = "bson::serde_helpers::chrono_datetime_as_bson_datetime")]
@@ -128,7 +142,6 @@ impl TaskService {
     }
 
     pub async fn create_task(
-        self,
         db: &Database,
         body: &CreateTaskReq,
         user: &Uuid,
@@ -136,27 +149,6 @@ impl TaskService {
         let task_result = base::create::<Self, CreateTaskReq>(db, body, user)
             .await
             .expect("task 생성에 실패했습니다.");
-
-        // Property 정보 추가.
-        let category_collection = db.collection::<CategoryModel>("categories");
-        let category = category_collection
-            .find_one(doc! { "_id": task_result.category_id }, None)
-            .await
-            .expect("Failed to fetch category")
-            .expect("Category not found");
-
-        let properties: Vec<PropValueModel> = category
-            .props
-            .iter()
-            .map(|prop| PropValueModel {
-                prop_id: prop.id,
-                prop_name: prop.name.clone(),
-                value: None,
-                prop_type: prop.prop_type.clone(),
-            })
-            .collect();
-
-        // TODO: Property 정보 추가.
 
         Ok(SingleTaskRes {
             status: "success",
@@ -176,7 +168,6 @@ impl TaskService {
     }
 
     pub async fn update_task(
-        self,
         db: &Database,
         id: &str,
         body: &UpdateTaskReq,
@@ -192,95 +183,95 @@ impl TaskService {
         })
     }
 
-    pub async fn update_task_prop_val(
-        db: &Database,
-        id: &str,
-        prop_id: &str,
-        value: &PropValueType,
-        user: &Uuid,
-    ) -> Result<SingleTaskRes> {
-        let task_oid = ObjectId::from_str(id).map_err(DBError::MongoGetOidError)?;
-        let prop_oid = ObjectId::from_str(prop_id).map_err(DBError::MongoGetOidError)?;
-
-        let coll = db.collection::<TaskModel>("tasks");
-
-        // get task, property info from collection
-        let task = match coll
-            .find_one(doc! { "_id": task_oid, "user": user }, None)
-            .await
-        {
-            Ok(Some(doc)) => doc,
-            Ok(None) => return Err(NotFoundError(task_oid.to_string())),
-            Err(e) => return Err(DB(DBError::MongoQueryError(e))),
-        };
-
-        let property = match task.prop_values.iter().find(|p| p.prop_id == prop_oid) {
-            Some(prop) => prop,
-            None => return Err(NotFoundError(prop_oid.to_string())),
-        };
-
-        let prop_type = &property.prop_type;
-
-        // set new value
-        let new_value = match prop_type {
-            PropertyType::MultiSelect | PropertyType::SingleSelect => {
-                if let PropValueType::Multiple(_) = value {
-                    value
-                } else {
-                    return Err(TypedError(
-                        "MultiSelect or SingleSelect types must have Multiple(Vec<String>) value"
-                            .to_string(),
-                    ));
-                }
-            }
-            _ => {
-                if let PropValueType::Single(_) = value {
-                    value
-                } else {
-                    return Err(TypedError(
-                        "Non-MultiSelect or SingleSelect types must have Single(String) value"
-                            .to_string(),
-                    ));
-                }
-            }
-        };
-
-        // update property with new value
-        let update_doc = doc! {
-            "$set": { "properties.$[elem].value": bson::to_bson(&new_value).map_err(DBError::MongoSerializeBsonError)? }
-        };
-
-        let array_filters = bson::doc! {
-            "arrayFilters": [ { "elem.prop_id": prop_oid } ]
-        };
-
-        let options = FindOneAndUpdateOptions::builder()
-            .array_filters(Some(vec![array_filters]))
-            .return_document(ReturnDocument::After)
-            .build();
-
-        let doc = match coll
-            .find_one_and_update(doc! {"_id": task_oid}, doc! { "$set": update_doc }, options)
-            .await
-        {
-            Ok(Some(doc)) => doc,
-            Ok(None) => return Err(NotFoundError(task_oid.to_string())),
-            Err(e) => return Err(DB(DBError::MongoQueryError(e))),
-        };
-
-        // convert doc to Res
-        let task_result = Self::convert_doc_to_response(&doc)?;
-
-        Ok(SingleTaskRes {
-            status: "success",
-            data: TaskData { task: task_result },
-        })
-    }
-
     pub async fn delete_task(db: &Database, id: &str) -> Result<()> {
         base::delete::<Self>(db, id).await
     }
 
+    // category 갱신에 따른 task 갱신
+    pub async fn update_tasks_for_category_change(
+        db: &Database,
+        category_id: &str,
+        new_category_name: &str,
+        new_category_color: &str,
+        user: &Uuid,
+    ) -> Result<TaskListRes> {
+        let tasks_collection = db.collection::<TaskModel>("tasks");
+
+        let mut cursor = tasks_collection
+            .find(doc! { "category_id": category_id, "user": user }, None)
+            .await?;
+
+        let mut tasks_results = Vec::new();
+
+        while let Some(task) = cursor.try_next().await? {
+            let update_task_req = UpdateTaskReq {
+                category_name: Some(new_category_name.to_string()),
+                category_color: Some(new_category_color.to_string()),
+                ..Default::default()
+            };
+
+            let task_result =
+                base::update::<Self, UpdateTaskReq>(db, &task.id.to_hex(), &update_task_req, user)
+                    .await
+                    .expect("task 업데이트에 실패했습니다.");
+
+            tasks_results.push(task_result);
+        }
+
+        Ok(TaskListRes {
+            status: "success",
+            results: tasks_results.len(),
+            tasks: tasks_results,
+        })
+    }
+
+    pub async fn update_tasks_for_property_change(
+        db: &Database,
+        category_id: &str,
+        prop_id: &str,
+        new_prop_name: &str,
+        new_prop_type: &PropertyType,
+        user_id: &Uuid,
+    ) -> Result<PropValueListRes> {
+        let tasks_collection = db.collection::<TaskModel>("tasks");
+        let category_oid =
+            ObjectId::from_str(&category_id).map_err(|e| DBError::MongoGetOidError(e))?;
+        let prop_oid = ObjectId::from_str(&prop_id).map_err(|e| DBError::MongoGetOidError(e))?;
+        let mut cursor = tasks_collection
+            .find(doc! { "category_id": category_oid, "user": user_id }, None)
+            .await?;
+
+        let mut prop_results = Vec::new();
+
+        while let Some(task) = cursor.try_next().await? {
+            if let Some(prop_value) = task.prop_values.iter().find(|p| p.prop_id == prop_oid) {
+                let values = match &prop_value.values {
+                    Some(val) => Some(vec![val.clone()]),
+                    None => None,
+                };
+
+                let update_prop_req = UpdatePropValueReq {
+                    name: Some(new_prop_name.to_string()),
+                    values,
+                    prop_type: Some(new_prop_type.to_owned()),
+                };
+
+                let prop_result =
+                    PropValueService::update_propV(db, &category_id, &prop_id, &update_prop_req)
+                        .await?;
+
+                prop_results.push(prop_result.data.propV);
+            }
+        }
+
+        Ok(PropValueListRes {
+            status: "success",
+            results: prop_results.len(),
+            propVs: prop_results,
+        })
+    }
+
+    // subtask
     pub async fn add_subtask(self, db: &Database, id: &str, user: &Uuid) -> Result<SingleTaskRes> {
         // Parse the task id
         let task_oid = ObjectId::from_str(id).map_err(DBError::MongoGetOidError)?;

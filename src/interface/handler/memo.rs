@@ -11,8 +11,22 @@ use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
     response::IntoResponse,
-    Extension, Json,
+    routing::{delete, get, post},
+    Extension, Json, Router,
 };
+
+pub fn memo_router(app_state: Arc<AppState>) -> Router {
+    Router::new()
+        .route("/api/memos/", post(create_memo_handler))
+        .route("/api/memos", get(memo_list_handler))
+        .route(
+            "/api/memos/:id",
+            get(get_memo_handler)
+                .patch(update_memo_handler)
+                .delete(delete_memo_handler),
+        )
+        .with_state(app_state)
+}
 
 pub async fn memo_list_handler(
     opts: Option<Query<FilterOptions>>,

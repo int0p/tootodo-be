@@ -1,12 +1,5 @@
 use std::sync::Arc;
 
-use axum::{
-    extract::{Path, Query, State},
-    http::StatusCode,
-    response::IntoResponse,
-    Extension, Json,
-};
-
 use crate::{
     auth::utils::auth::JWTAuthMiddleware,
     domain::{
@@ -21,6 +14,38 @@ use crate::{
     },
     AppState,
 };
+use axum::{
+    extract::{Path, Query, State},
+    http::StatusCode,
+    response::IntoResponse,
+    routing::{delete, get, post},
+    Extension, Json, Router,
+};
+
+pub fn event_router(app_state: Arc<AppState>) -> Router {
+    Router::new()
+        .route("/api/events/", post(create_event_handler))
+        .route("/api/events", get(event_list_handler))
+        .route(
+            "/api/events/:id",
+            get(get_event_handler)
+                .patch(update_event_handler)
+                .delete(delete_event_handler),
+        )
+        .route("/events/:event_id/chat/", post(add_event_msg_handler))
+        .route("/events/:event_id/chat", get(fetch_msgs_handler))
+        .route(
+            "/events/:event_id/chat/:msg_id",
+            get(get_event_msg_handler)
+                .delete(remove_event_msg_handler)
+                .put(update_event_msg_handler),
+        )
+        // .route(
+        //     "/events/:event_id/chat/:msg_id/add_chat",
+        //     post(add_chat_to_event_msg_handler),
+        // )
+        .with_state(app_state)
+}
 
 pub async fn event_list_handler(
     opts: Option<Query<FilterOptions>>,
@@ -97,8 +122,8 @@ pub async fn delete_event_handler(
     }
 }
 
-// chat
-pub async fn get_msg_handler(
+// Chat Handlers for Event
+pub async fn get_event_msg_handler(
     State(app_state): State<Arc<AppState>>,
     Path((event_id, msg_id)): Path<(String, String)>,
 ) -> Result<impl IntoResponse> {
@@ -111,7 +136,7 @@ pub async fn get_msg_handler(
     }
 }
 
-pub async fn add_msg_handler(
+pub async fn add_event_msg_handler(
     State(app_state): State<Arc<AppState>>,
     Path((event_id,)): Path<(String,)>,
     Json(new_msg): Json<CreateMsgReq>,
@@ -125,7 +150,7 @@ pub async fn add_msg_handler(
     }
 }
 
-pub async fn remove_msg_handler(
+pub async fn remove_event_msg_handler(
     State(app_state): State<Arc<AppState>>,
     Path((event_id, msg_id)): Path<(String, String)>,
 ) -> Result<impl IntoResponse> {
@@ -138,7 +163,7 @@ pub async fn remove_msg_handler(
     }
 }
 
-pub async fn update_msg_handler(
+pub async fn update_event_msg_handler(
     State(app_state): State<Arc<AppState>>,
     Path((event_id, msg_id)): Path<(String, String)>,
     Json(update_req): Json<UpdateMsgReq>,
@@ -177,7 +202,7 @@ pub async fn fetch_msgs_handler(
 }
 
 // TODO: add_chat_to_msg함수 구현된다면..
-// pub async fn add_chat_to_msg_handler(
+// pub async fn add_chat_to_event_msg_handler(
 //     State(app_state): State<Arc<AppState>>,
 //     Path((event_id, msg_id)): Path<(String, String)>,
 // ) -> Result<impl IntoResponse> {

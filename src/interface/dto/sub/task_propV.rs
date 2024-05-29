@@ -14,11 +14,10 @@ pub mod req {
 
     #[derive(Serialize, Deserialize, Debug)]
     pub struct UpdatePropValueReq {
-        pub user: Uuid,
         #[serde(skip_serializing_if = "Option::is_none")]
         pub name: Option<String>,
         #[serde(skip_serializing_if = "Option::is_none")]
-        pub value: Option<Vec<String>>,
+        pub values: Option<Vec<PropValueType>>,
         #[serde(skip_serializing_if = "Option::is_none")]
         pub prop_type: Option<PropertyType>,
     }
@@ -44,7 +43,7 @@ pub mod res {
             Self {
                 id: propV.prop_id.to_hex(),
                 prop_name: propV.prop_name.clone(),
-                value: propV.value.clone(),
+                value: propV.values.clone(),
                 prop_type: propV.prop_type.to_owned(),
             }
         }

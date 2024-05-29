@@ -4,7 +4,8 @@ use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
     response::IntoResponse,
-    Extension, Json,
+    routing::{delete, get, post},
+    Extension, Json, Router,
 };
 
 use crate::{
@@ -16,6 +17,19 @@ use crate::{
     interface::dto::habit::req::{CreateHabitReq, FilterOptions, UpdateHabitReq},
     AppState,
 };
+
+pub fn habit_router(app_state: Arc<AppState>) -> Router {
+    Router::new()
+        .route("/api/habits/", post(create_habit_handler))
+        .route("/api/habits", get(habit_list_handler))
+        .route(
+            "/api/habits/:id",
+            get(get_habit_handler)
+                .patch(update_habit_handler)
+                .delete(delete_habit_handler),
+        )
+        .with_state(app_state)
+}
 
 pub async fn habit_list_handler(
     opts: Option<Query<FilterOptions>>,

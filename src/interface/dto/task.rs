@@ -50,6 +50,22 @@ pub mod req {
         #[serde(skip_serializing_if = "Option::is_none")]
         pub chat_type: Option<ChatType>,
     }
+
+    impl Default for UpdateTaskReq {
+        fn default() -> Self {
+            Self {
+                title: None,
+                category_id: None,
+                category_color: None,
+                category_name: None,
+                start_date: None,
+                due_at: None,
+                parent_id: None,
+                subtasks: None,
+                chat_type: None,
+            }
+        }
+    }
 }
 
 pub mod res {
