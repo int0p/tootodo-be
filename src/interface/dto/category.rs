@@ -3,23 +3,15 @@ pub mod req {
     use serde::{Deserialize, Serialize};
     use uuid::Uuid;
 
-    #[derive(Deserialize, Debug, Default)]
-    pub struct FilterOptions {
-        pub page: Option<usize>,
-        pub limit: Option<usize>,
-    }
-
     // Category
     #[derive(Serialize, Deserialize, Debug)]
     pub struct CreateCategoryReq {
-        pub user: Uuid,
         pub name: String,
         pub color: String,
     }
 
     #[derive(Serialize, Deserialize, Debug)]
     pub struct UpdateCategoryReq {
-        pub user: Uuid,
         #[serde(skip_serializing_if = "Option::is_none")]
         pub name: Option<String>,
         #[serde(skip_serializing_if = "Option::is_none")]
@@ -36,13 +28,14 @@ pub mod req {
 }
 
 pub mod res {
-    use crate::domain::{category::CategoryModel, sub::property::PropertyModel, types::StatusType};
+    use crate::domain::{category::CategoryModel, sub::property::PropertyModel};
+    use crate::infra::types::StatusType;
     use chrono::{DateTime, Utc};
-    use serde::Serialize;
+    use serde::{Deserialize, Serialize};
     use uuid::Uuid;
 
     #[allow(non_snake_case)]
-    #[derive(Serialize, Debug)]
+    #[derive(Deserialize, Serialize, Debug)]
     pub struct CategoryRes {
         pub id: String,
         pub user: Uuid,

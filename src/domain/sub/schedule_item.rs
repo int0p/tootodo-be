@@ -2,7 +2,7 @@ use crate::domain::error::Result;
 use crate::domain::repo::base_array::{self, MongoArrayRepo};
 use crate::domain::repo::ElemInfo;
 use crate::domain::schedule::ScheduleModel;
-use crate::domain::types::ScheduleType;
+use crate::infra::types::ScheduleType;
 use crate::interface::dto::sub::schedule_item::{req::*, res::*};
 use chrono::{DateTime, NaiveDate, NaiveTime, Utc, Weekday};
 use mongodb::bson::oid::ObjectId;
@@ -145,7 +145,7 @@ where
         limit: i64,
         page: i64,
     ) -> Result<ScheduleItemListRes<Elem::Res>> {
-        let results = base_array::fetch_elems::<Self>(db, src_id, limit, page).await?;
+        let results = base_array::fetch_elems::<Self>(db, src_id, Some(limit), Some(page)).await?;
         Ok(ScheduleItemListRes {
             status: "success",
             results: results.len(),

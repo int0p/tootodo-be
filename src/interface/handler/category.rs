@@ -2,7 +2,7 @@ use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
     response::IntoResponse,
-    routing::{delete, get, post},
+    routing::{get, post},
     Extension, Json, Router,
 };
 use std::sync::Arc;
@@ -15,10 +15,10 @@ use crate::{
         sub::property::PropertyService,
         task::TaskService,
     },
+    infra::types::FilterOptions,
     interface::dto::{
         category::req::{CreateCategoryReq, UpdateCategoryReq},
         sub::property::req::{CreatePropertyReq, UpdatePropertyReq},
-        FilterOptions,
     },
     AppState,
 };
@@ -218,16 +218,10 @@ pub async fn update_property_handler(
 }
 
 pub async fn fetch_properties_handler(
-    opts: Option<Query<FilterOptions>>,
     State(app_state): State<Arc<AppState>>,
     Path((category_id,)): Path<(String,)>,
 ) -> Result<impl IntoResponse> {
-    let Query(opts) = opts.unwrap_or_default();
-
-    let limit = opts.limit.unwrap_or(10) as i64;
-    let page = opts.page.unwrap_or(1) as i64;
-
-    match PropertyService::fetch_properties(&app_state.mongodb.db, &category_id, limit, page)
+    match PropertyService::fetch_properties(&app_state.mongodb.db, &category_id)
         .await
         .map_err(Error::from)
     {

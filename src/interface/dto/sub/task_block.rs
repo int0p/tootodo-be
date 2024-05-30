@@ -1,18 +1,17 @@
 pub mod req {
-    use crate::domain::types::BlockType;
-    use mongodb::bson::oid::ObjectId;
+    use crate::infra::types::BlockType;
     use serde::{Deserialize, Serialize};
 
     #[derive(Serialize, Deserialize, Debug)]
     pub struct CreateBlockReq {
-        pub src_task_id: ObjectId,
+        pub src_task_id: String,
         pub block_type: BlockType,
     }
 
     #[derive(Serialize, Deserialize, Debug)]
     pub struct UpdateBlockReq {
         #[serde(skip_serializing_if = "Option::is_none")]
-        pub src_task_id: Option<ObjectId>,
+        pub src_task_id: Option<String>,
         #[serde(skip_serializing_if = "Option::is_none")]
         pub block_type: Option<BlockType>,
         #[serde(skip_serializing_if = "Option::is_none")]
@@ -22,14 +21,15 @@ pub mod req {
     #[derive(Serialize, Deserialize, Debug)]
     pub struct FilterBlockReq {
         #[serde(skip_serializing_if = "Option::is_none")]
-        pub src_task_id: Option<ObjectId>,
+        pub src_task_id: Option<String>,
         #[serde(skip_serializing_if = "Option::is_none")]
         pub block_type: Option<BlockType>,
     }
 }
 
 pub mod res {
-    use crate::domain::{sub::task_block::BlockModel, types::BlockType};
+    use crate::domain::sub::task_block::BlockModel;
+    use crate::infra::types::BlockType;
     use serde::{Deserialize, Serialize};
 
     #[allow(non_snake_case)]

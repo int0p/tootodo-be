@@ -1,5 +1,5 @@
 pub mod req {
-    use crate::domain::types::{ChatType, MsgType};
+    use crate::infra::types::{ChatType, MsgType};
     use serde::{Deserialize, Serialize};
 
     #[derive(Serialize, Deserialize, Debug)]
@@ -40,10 +40,8 @@ pub mod req {
 }
 
 pub mod res {
-    use crate::domain::{
-        sub::chat::MsgModel,
-        types::{ChatType, MsgType},
-    };
+    use crate::domain::sub::chat::MsgModel;
+    use crate::infra::types::{ChatType, MsgType};
     use chrono::{DateTime, Utc};
     use serde::{Deserialize, Serialize};
 
@@ -65,7 +63,7 @@ pub mod res {
                 id: msg.id.to_hex(),
                 msg_type: msg.msg_type.to_owned(),
                 content: msg.content.clone(),
-                created_at: msg.created_at,
+                created_at: msg.createdAt,
                 booked: msg.booked,
                 chat_type: msg.chat_type.to_owned(),
                 chat_msgs: msg.chat_msgs.clone(),

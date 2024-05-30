@@ -1,16 +1,15 @@
 pub mod req {
     use chrono::{DateTime, NaiveDate, NaiveTime, Utc, Weekday};
-    use mongodb::bson::oid::ObjectId;
     use serde::{Deserialize, Serialize};
 
-    use crate::domain::types::ScheduleType;
+    use crate::infra::types::ScheduleType;
 
     #[allow(non_snake_case)]
     #[derive(Serialize, Deserialize, Debug)]
     pub struct CreateScheduledTaskReq {
-        pub task_id: ObjectId,
+        pub task_id: String,
         pub title: String,
-        pub category_id: ObjectId,
+        pub category_id: String,
         pub category_color: String,
     }
 
@@ -20,7 +19,7 @@ pub mod req {
         #[serde(skip_serializing_if = "Option::is_none")]
         pub title: Option<String>,
         #[serde(skip_serializing_if = "Option::is_none")]
-        pub category_id: Option<ObjectId>,
+        pub category_id: Option<String>,
         #[serde(skip_serializing_if = "Option::is_none")]
         pub category_color: Option<String>,
     }
@@ -28,7 +27,7 @@ pub mod req {
     #[allow(non_snake_case)]
     #[derive(Serialize, Deserialize, Debug)]
     pub struct CreateScheduledEventReq {
-        pub event_id: ObjectId,
+        pub event_id: String,
         pub title: String,
         pub start_date: Option<NaiveDate>,
         pub due_at: Option<DateTime<Utc>>,
@@ -48,7 +47,7 @@ pub mod req {
     #[allow(non_snake_case)]
     #[derive(Serialize, Deserialize, Debug)]
     pub struct CreateScheduledHabitReq {
-        pub habit_id: ObjectId,
+        pub habit_id: String,
         pub name: String,
         pub icon: String,
     }
@@ -65,7 +64,7 @@ pub mod req {
     #[allow(non_snake_case)]
     #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
     pub struct CreateScheduledAtReq {
-        pub item_id: ObjectId,
+        pub item_id: String,
         pub item_type: ScheduleType,
         pub weekday: Weekday, //Mon=0
     }
@@ -88,10 +87,10 @@ pub mod res {
     use chrono::{DateTime, NaiveDate, NaiveTime, Utc, Weekday};
     use serde::{Deserialize, Serialize};
 
-    use crate::domain::{
-        sub::schedule_item::{ScheduledAt, ScheduledEvent, ScheduledHabit, ScheduledTask},
-        types::ScheduleType,
+    use crate::domain::sub::schedule_item::{
+        ScheduledAt, ScheduledEvent, ScheduledHabit, ScheduledTask,
     };
+    use crate::infra::types::ScheduleType;
 
     #[derive(Serialize, Deserialize, Debug)]
     pub struct ScheduledTaskRes {

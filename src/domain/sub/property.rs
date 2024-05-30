@@ -2,13 +2,13 @@ use mongodb::bson::oid::ObjectId;
 use mongodb::Database;
 use serde::{Deserialize, Serialize};
 
+use crate::infra::types::PropertyType;
 use crate::interface::dto::sub::property::{req::*, res::*};
 
 use crate::domain::{
     category::CategoryModel,
     error::Result,
     repo::base_array::{self, MongoArrayRepo},
-    types::PropertyType,
 };
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -84,13 +84,8 @@ impl PropertyService {
         })
     }
 
-    pub async fn fetch_properties(
-        db: &Database,
-        category_id: &str,
-        limit: i64,
-        page: i64,
-    ) -> Result<PropertyListRes> {
-        let results = base_array::fetch_elems::<Self>(db, category_id, limit, page).await?;
+    pub async fn fetch_properties(db: &Database, category_id: &str) -> Result<PropertyListRes> {
+        let results = base_array::fetch_elems::<Self>(db, category_id, None, None).await?;
         Ok(PropertyListRes {
             status: "success",
             results: results.len(),

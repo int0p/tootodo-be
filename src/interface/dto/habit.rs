@@ -1,7 +1,7 @@
 pub mod req {
     use serde::{Deserialize, Serialize};
 
-    use crate::domain::types::StatusType;
+    use crate::infra::types::StatusType;
 
     // Habit
     #[derive(Serialize, Deserialize, Debug)]
@@ -19,23 +19,18 @@ pub mod req {
         #[serde(skip_serializing_if = "Option::is_none")]
         pub status: Option<StatusType>,
     }
-
-    #[derive(Deserialize, Debug, Default)]
-    pub struct FilterOptions {
-        pub page: Option<usize>,
-        pub limit: Option<usize>,
-    }
 }
 
 pub mod res {
     use chrono::{DateTime, Utc};
-    use serde::Serialize;
+    use serde::{Deserialize, Serialize};
     use uuid::Uuid;
 
-    use crate::domain::{habit::HabitModel, types::StatusType};
+    use crate::domain::habit::HabitModel;
+    use crate::infra::types::StatusType;
 
     #[allow(non_snake_case)]
-    #[derive(Serialize, Debug)]
+    #[derive(Deserialize, Serialize, Debug)]
     pub struct HabitRes {
         pub id: String,
         pub user: Uuid,

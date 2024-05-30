@@ -1,10 +1,8 @@
 pub mod req {
     use serde::{Deserialize, Serialize};
-    use uuid::Uuid;
 
     #[derive(Serialize, Deserialize, Debug)]
     pub struct CreateMemoReq {
-        pub user: Uuid,
         pub title: String,
         pub color: String,
     }
@@ -18,23 +16,17 @@ pub mod req {
         #[serde(skip_serializing_if = "Option::is_none")]
         pub color: Option<String>,
     }
-
-    #[derive(Deserialize, Debug, Default)]
-    pub struct FilterOptions {
-        pub page: Option<usize>,
-        pub limit: Option<usize>,
-    }
 }
 
 pub mod res {
     use chrono::{DateTime, Utc};
-    use serde::Serialize;
+    use serde::{Deserialize, Serialize};
     use uuid::Uuid;
 
     use crate::domain::memo::MemoModel;
 
     #[allow(non_snake_case)]
-    #[derive(Serialize, Debug)]
+    #[derive(Deserialize, Serialize, Debug)]
     pub struct MemoRes {
         pub id: String,
         pub user: Uuid,

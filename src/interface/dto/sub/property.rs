@@ -1,5 +1,5 @@
 pub mod req {
-    use crate::domain::types::PropertyType;
+    use crate::infra::types::PropertyType;
     use serde::{Deserialize, Serialize};
 
     // property
@@ -26,7 +26,9 @@ pub mod req {
     }
 }
 pub mod res {
-    use crate::domain::{sub::property::PropertyModel, types::PropertyType};
+    use crate::domain::sub::property::PropertyModel;
+    use crate::infra::types::PropertyType;
+
     use serde::{Deserialize, Serialize};
 
     #[allow(non_snake_case)]

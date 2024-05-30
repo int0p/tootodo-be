@@ -1,8 +1,7 @@
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use std::str::FromStr;
 
 use chrono::{DateTime, Utc};
-use mongodb::bson::{self, doc, oid::ObjectId, Bson};
+use mongodb::bson::{self, doc, oid::ObjectId};
 use mongodb::Database;
 
 use crate::domain::repo::CollInfo;
@@ -10,30 +9,29 @@ use crate::interface::dto::sub::chat::req::{CreateMsgReq, UpdateMsgReq};
 
 use crate::interface::dto::sub::chat::res::*;
 use crate::{
-    domain::error::Result,
-    domain::repo::{
-        base_array::{self, MongoArrayRepo},
-        utils::update_doc_ret_doc,
-    },
+    domain::error::{Error::*, Result},
+    domain::repo::base_array::{self, MongoArrayRepo},
     infra::db::error::Error as DBError,
 };
 
 use crate::domain::event::EventModel;
 use crate::domain::task::TaskModel;
-use crate::domain::types::{ChatType, MsgType};
+use crate::infra::types::{ChatType, MsgType};
 
+#[allow(non_snake_case)]
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct MsgModel {
     #[serde(rename = "_id")]
     pub id: ObjectId,
     pub msg_type: MsgType,
     pub content: String,
-    pub created_at: DateTime<Utc>,
     pub booked: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub chat_type: Option<ChatType>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub chat_msgs: Option<Vec<MsgModel>>,
+    #[serde(with = "bson::serde_helpers::chrono_datetime_as_bson_datetime")]
+    pub createdAt: DateTime<Utc>,
 }
 
 impl CollInfo for EventModel {
@@ -97,7 +95,7 @@ where
         limit: i64,
         page: i64,
     ) -> Result<MsgListRes> {
-        let results = base_array::fetch_elems::<Self>(db, src_id, limit, page).await?;
+        let results = base_array::fetch_elems::<Self>(db, src_id, Some(limit), Some(page)).await?;
         Ok(MsgListRes {
             status: "success",
             results: results.len(),

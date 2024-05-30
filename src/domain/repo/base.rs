@@ -1,7 +1,7 @@
 use chrono::Utc;
 use futures::StreamExt;
 use mongodb::bson::{doc, oid::ObjectId};
-use mongodb::bson::{Bson, Document};
+use mongodb::bson::{from_document, Bson, Document};
 use mongodb::options::FindOptions;
 use mongodb::{bson, Database, IndexModel};
 use serde::de::DeserializeOwned;
@@ -12,14 +12,15 @@ use uuid::Uuid;
 
 use crate::domain::error::{Error::*, Result};
 use crate::infra::db::error::Error as DBError;
+use crate::infra::types::FetchFilterOptions;
 
-use super::utils::{find_mdoc_by_id, update_doc_ret_doc, update_doc_ret_model};
+use super::utils::{find_mdoc_by_id, update_doc_ret_model};
 
 pub trait MongoRepo {
     type Model;
     type ModelResponse;
+    type ModelFetchResponse: DeserializeOwned;
     const COLL_NAME: &'static str;
-    const DOC_COLL_NAME: &'static str;
     fn convert_doc_to_response(doc: &Self::Model) -> Result<Self::ModelResponse>;
     fn create_doc<Schema: Serialize>(user: &Uuid, body: &Schema) -> Result<Document>;
 }
@@ -27,30 +28,43 @@ pub trait MongoRepo {
 // S: Service
 pub async fn fetch<S>(
     db: &Database,
-    limit: i64,
-    page: i64,
+    filter_opts: FetchFilterOptions,
     user: &Uuid,
-) -> Result<Vec<S::ModelResponse>>
+) -> Result<Vec<S::ModelFetchResponse>>
 where
     S: MongoRepo,
     S::Model: DeserializeOwned + Serialize + Unpin + Send + Sync,
 {
-    let coll = db.collection::<S::Model>(S::COLL_NAME);
-    // let doc_coll = db.collection::<Document>(S::DOC_COLL_NAME);
+    let doc_coll = db.collection::<Document>(S::COLL_NAME);
+
+    let (find_filter, proj_opts, limit, page) = (
+        filter_opts.find_filter.unwrap_or(doc! {"user": user}),
+        filter_opts.proj_opts.unwrap_or(doc! {}),
+        filter_opts.limit,
+        filter_opts.page,
+    );
 
     let find_options = FindOptions::builder()
+        .projection(proj_opts)
         .limit(limit)
         .skip(u64::try_from((page - 1) * limit).unwrap())
         .build();
 
-    let mut cursor = coll
-        .find(doc! {"user": user}, find_options)
+    let mut cursor = doc_coll
+        .find(find_filter, find_options)
         .await
         .map_err(|e| DBError::MongoQueryError(e))?;
 
-    let mut json_result: Vec<S::ModelResponse> = Vec::new();
-    while let Some(doc) = cursor.next().await {
-        json_result.push(S::convert_doc_to_response(&doc.unwrap())?);
+    let mut json_result: Vec<S::ModelFetchResponse> = Vec::new();
+    while let Some(result) = cursor.next().await {
+        match result {
+            Ok(doc) => {
+                let res: S::ModelFetchResponse =
+                    from_document(doc).map_err(|e| DBError::MongoDeserializeBsonError(e))?;
+                json_result.push(res);
+            }
+            Err(e) => return Err(DB(DBError::MongoQueryError(e))),
+        }
     }
 
     Ok(json_result)
@@ -67,7 +81,7 @@ where
     Schema: Serialize,
 {
     let coll = db.collection::<S::Model>(S::COLL_NAME);
-    let doc_coll = db.collection::<Document>(S::DOC_COLL_NAME);
+    let doc_coll = db.collection::<Document>(S::COLL_NAME);
 
     let document = S::create_doc::<Schema>(user, body)?;
 
@@ -156,7 +170,7 @@ where
 }
 
 pub async fn delete<S: MongoRepo>(db: &Database, id: &str) -> Result<()> {
-    let doc_coll = db.collection::<Document>(S::DOC_COLL_NAME);
+    let doc_coll = db.collection::<Document>(S::COLL_NAME);
 
     let oid = ObjectId::from_str(id).map_err(|e| DBError::MongoGetOidError(e))?;
     let filter = doc! {"_id": oid };

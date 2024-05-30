@@ -1,12 +1,11 @@
 pub mod req {
     use chrono::{DateTime, Utc};
-    use mongodb::bson::oid::ObjectId;
     use serde::{Deserialize, Serialize};
 
     #[allow(non_snake_case)]
     #[derive(Serialize, Deserialize, Debug)]
     pub struct CreateDailyTaskReq {
-        pub task_id: ObjectId,
+        pub task_id: String,
         pub title: String,
     }
 
@@ -24,7 +23,7 @@ pub mod req {
     #[allow(non_snake_case)]
     #[derive(Serialize, Deserialize, Debug)]
     pub struct CreateDailyEventReq {
-        pub event_id: ObjectId,
+        pub event_id: String,
         pub title: String,
     }
 
@@ -42,7 +41,7 @@ pub mod req {
     #[allow(non_snake_case)]
     #[derive(Serialize, Deserialize, Debug)]
     pub struct CreateDailyHabitReq {
-        pub habit_id: ObjectId,
+        pub habit_id: String,
         pub name: String,
         pub icon: String,
     }
@@ -63,7 +62,7 @@ pub mod req {
     #[allow(non_snake_case)]
     #[derive(Serialize, Deserialize, Debug)]
     pub struct CreateTimerResultReq {
-        pub category_id: ObjectId,
+        pub category_id: String,
         pub category_color: String,
         pub startAt: DateTime<Utc>,
         pub endAt: DateTime<Utc>,
@@ -74,7 +73,7 @@ pub mod req {
     #[derive(Serialize, Deserialize, Debug)]
     pub struct UpdateTimerResultReq {
         #[serde(skip_serializing_if = "Option::is_none")]
-        pub category_id: Option<ObjectId>,
+        pub category_id: Option<String>,
         #[serde(skip_serializing_if = "Option::is_none")]
         pub category_color: Option<String>,
         #[serde(skip_serializing_if = "Option::is_none")]

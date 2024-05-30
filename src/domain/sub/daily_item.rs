@@ -1,11 +1,15 @@
-use crate::domain::daily::DailyModel;
-use crate::domain::error::Result;
-use crate::domain::repo::base_array::{self, MongoArrayRepo};
-use crate::domain::repo::ElemInfo;
 use crate::interface::dto::sub::daily_item::req::*;
 use crate::interface::dto::sub::daily_item::res::*;
+use crate::{
+    domain::daily::DailyModel,
+    domain::error::{Error::*, Result},
+    domain::repo::base_array::{self, MongoArrayRepo},
+    domain::repo::ElemInfo,
+    infra::db::error::Error as DBError,
+};
 use chrono::{DateTime, Utc};
 use mongodb::bson::oid::ObjectId;
+use mongodb::bson::{self, doc, Document};
 use mongodb::Database;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
@@ -17,6 +21,8 @@ pub struct DailyTaskModel {
     pub title: String,
     pub done: bool,
     pub doneAt: Option<DateTime<Utc>>,
+    #[serde(with = "bson::serde_helpers::chrono_datetime_as_bson_datetime")]
+    pub createdAt: DateTime<Utc>,
 }
 
 #[allow(non_snake_case)]
@@ -26,6 +32,8 @@ pub struct DailyEventModel {
     pub title: String,
     pub done: bool,
     pub doneAt: Option<DateTime<Utc>>,
+    #[serde(with = "bson::serde_helpers::chrono_datetime_as_bson_datetime")]
+    pub createdAt: DateTime<Utc>,
 }
 
 #[allow(non_snake_case)]
@@ -36,6 +44,8 @@ pub struct DailyHabitModel {
     pub name: String,
     pub done: bool,
     pub doneAt: Option<DateTime<Utc>>,
+    #[serde(with = "bson::serde_helpers::chrono_datetime_as_bson_datetime")]
+    pub createdAt: DateTime<Utc>,
 }
 
 #[allow(non_snake_case)]
@@ -46,6 +56,8 @@ pub struct TimerResultModel {
     pub startAt: DateTime<Utc>,
     pub endAt: DateTime<Utc>,
     pub focus_time: String,
+    #[serde(with = "bson::serde_helpers::chrono_datetime_as_bson_datetime")]
+    pub createdAt: DateTime<Utc>,
 }
 
 pub struct DailyItemService<Elem> {
@@ -151,7 +163,7 @@ where
         limit: i64,
         page: i64,
     ) -> Result<DailyItemListRes<Elem::Res>> {
-        let results = base_array::fetch_elems::<Self>(db, src_id, limit, page).await?;
+        let results = base_array::fetch_elems::<Self>(db, src_id, Some(limit), Some(page)).await?;
         Ok(DailyItemListRes {
             status: "success",
             results: results.len(),

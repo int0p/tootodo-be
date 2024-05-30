@@ -8,4 +8,3 @@ pub mod repo;
 pub mod schedule;
 pub mod sub;
 pub mod task;
-pub mod types;

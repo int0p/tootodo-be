@@ -2,12 +2,7 @@ pub mod req {
     use chrono::{DateTime, NaiveDate, Utc};
     use serde::{Deserialize, Serialize};
 
-    use crate::domain::types::ChatType;
-    #[derive(Deserialize, Debug, Default)]
-    pub struct FilterOptions {
-        pub page: Option<usize>,
-        pub limit: Option<usize>,
-    }
+    use crate::infra::types::ChatType;
 
     // Event
     #[derive(Serialize, Deserialize, Debug)]
@@ -40,16 +35,12 @@ pub mod req {
 }
 
 pub mod res {
-    use crate::domain::{event::EventModel, sub::chat::MsgModel, types::ChatType};
+    use crate::domain::{event::EventModel, sub::chat::MsgModel};
+    use crate::infra::types::ChatType;
     use chrono::{DateTime, NaiveDate, Utc};
-    use serde::Serialize;
+    use mongodb::bson::Document;
+    use serde::{Deserialize, Serialize};
     use uuid::Uuid;
-
-    #[derive(Serialize)]
-    pub struct GenericRes {
-        pub status: String,
-        pub message: String,
-    }
 
     #[allow(non_snake_case)]
     #[derive(Serialize, Debug)]
@@ -101,5 +92,49 @@ pub mod res {
         pub status: &'static str,
         pub results: usize,
         pub events: Vec<EventRes>,
+    }
+
+    #[allow(non_snake_case)]
+    #[derive(Deserialize, Serialize, Debug)]
+    pub struct EventFetchRes {
+        pub id: String,
+        pub user: Uuid,
+        pub title: String,
+        pub complete: bool,
+        pub start_date: Option<NaiveDate>,
+        pub due_at: Option<DateTime<Utc>>,
+        pub location: Option<String>,
+        pub createdAt: DateTime<Utc>,
+        pub updatedAt: DateTime<Utc>,
+    }
+
+    impl EventFetchRes {
+        pub fn build_projection() -> Document {
+            let mut projection = Document::new();
+
+            let fields = vec![
+                "_id",
+                "user",
+                "title",
+                "complete",
+                "start_date",
+                "due_at",
+                "location",
+                "createdAt",
+                "updatedAt",
+            ];
+
+            for field in fields {
+                projection.insert(field, 1);
+            }
+
+            projection
+        }
+    }
+    #[derive(Serialize, Debug)]
+    pub struct EventFetchedRes {
+        pub status: &'static str,
+        pub results: usize,
+        pub events: Vec<EventFetchRes>,
     }
 }

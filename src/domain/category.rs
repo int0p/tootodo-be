@@ -4,6 +4,8 @@ use uuid::Uuid;
 
 use std::{collections::HashSet, str::FromStr};
 
+use super::sub::property::PropertyModel;
+use crate::infra::types::{FetchFilterOptions, PropertyType, StatusType};
 use crate::{
     domain::error::{Error::*, Result},
     domain::repo::base::{self, MongoRepo},
@@ -16,11 +18,6 @@ use crate::{
 use mongodb::{
     bson::{self, doc, oid::ObjectId, Bson, Document},
     Database,
-};
-
-use super::{
-    sub::property::PropertyModel,
-    types::{PropertyType, StatusType},
 };
 
 #[allow(non_snake_case)]
@@ -45,10 +42,9 @@ pub struct CategoryService;
 
 impl MongoRepo for CategoryService {
     const COLL_NAME: &'static str = "categories";
-    const DOC_COLL_NAME: &'static str = "categories";
     type Model = CategoryModel;
     type ModelResponse = CategoryRes;
-
+    type ModelFetchResponse = CategoryRes;
     fn convert_doc_to_response(category: &CategoryModel) -> Result<CategoryRes> {
         let category_response = CategoryRes {
             user: category.user,
@@ -100,7 +96,13 @@ impl CategoryService {
         page: i64,
         user: &Uuid,
     ) -> Result<CategoryListRes> {
-        let categories_result = base::fetch::<Self>(db, limit, page, user)
+        let filter_opts = FetchFilterOptions {
+            find_filter: None,
+            proj_opts: None,
+            limit,
+            page,
+        };
+        let categories_result = base::fetch::<Self>(db, filter_opts, user)
             .await
             .expect("category 응답을 받아오지 못했습니다.");
 

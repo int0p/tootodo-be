@@ -1,4 +1,5 @@
 use mongodb::bson::oid::ObjectId;
+use mongodb::bson::Document;
 use mongodb::Database;
 use serde::{Deserialize, Serialize};
 
@@ -6,7 +7,7 @@ use crate::domain::error::{Error::*, Result};
 
 use crate::domain::repo::base_array::{self, MongoArrayRepo};
 use crate::domain::task::TaskModel;
-use crate::domain::types::{PropValueType, PropertyType};
+use crate::infra::types::{PropValueType, PropertyType};
 use crate::interface::dto::sub::task_propV::req::*;
 use crate::interface::dto::sub::task_propV::res::*;
 
@@ -68,6 +69,10 @@ impl MongoArrayRepo for PropValueService {
     fn convert_doc_to_response(doc: &PropValueModel) -> Result<Self::ElemRes> {
         Ok(PropValueRes::from_model(doc))
     }
+
+    fn create_doc(body: &CreatePropValueReq) -> Result<Document> {
+        todo!()
+    }
 }
 
 impl PropValueService {
@@ -97,13 +102,8 @@ impl PropValueService {
         })
     }
 
-    pub async fn fetch_propVs(
-        db: &Database,
-        category_id: &str,
-        limit: i64,
-        page: i64,
-    ) -> Result<PropValueListRes> {
-        let results = base_array::fetch_elems::<Self>(db, category_id, limit, page).await?;
+    pub async fn fetch_propVs(db: &Database, category_id: &str) -> Result<PropValueListRes> {
+        let results = base_array::fetch_elems::<Self>(db, category_id, None, None).await?;
         Ok(PropValueListRes {
             status: "success",
             results: results.len(),

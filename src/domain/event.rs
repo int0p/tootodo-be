@@ -1,5 +1,7 @@
 use crate::domain::sub::chat::MsgModel;
-use crate::domain::types::ChatType;
+use crate::infra::types::{ChatType, FetchFilterOptions};
+use crate::interface::dto::event::res::{EventFetchRes, EventFetchedRes};
+
 use chrono::prelude::*;
 use mongodb::bson::doc;
 use mongodb::bson::{self, oid::ObjectId};
@@ -9,7 +11,7 @@ use uuid::Uuid;
 
 use crate::interface::dto::event::{
     req::{CreateEventReq, UpdateEventReq},
-    res::{EventData, EventListRes, EventRes, SingleEventRes},
+    res::{EventData, EventRes, SingleEventRes},
 };
 
 use crate::{
@@ -44,10 +46,9 @@ pub struct EventService;
 
 impl MongoRepo for EventService {
     const COLL_NAME: &'static str = "events";
-    const DOC_COLL_NAME: &'static str = "events";
     type Model = EventModel;
     type ModelResponse = EventRes;
-
+    type ModelFetchResponse = EventFetchRes;
     fn convert_doc_to_response(event: &EventModel) -> Result<EventRes> {
         Ok(EventRes::from_model(event))
     }
@@ -56,27 +57,20 @@ impl MongoRepo for EventService {
         user: &Uuid,
         body: &CreateEventReq,
     ) -> Result<Document> {
-        let serialized_data =
-            bson::to_bson(body).map_err(|e| DB(DBError::MongoSerializeBsonError(e)))?;
-        let document = serialized_data.as_document().unwrap();
+        let ser_data = bson::to_bson(body).map_err(|e| DB(DBError::MongoSerializeBsonError(e)))?;
+        let doc = ser_data.as_document().unwrap();
 
-        // let msgs = ChatModel {
-        //     src_type: ChatType::Event,
-        //     msgs: None,
-        // };
-        // let serialized_chat = bson::to_bson(&msgs).map_err(|e| DB(DBError::MongoSerializeBsonError(e)))?;
         let datetime = Utc::now();
 
-        let mut doc_with_dates = doc! {
+        let mut doc_with_date = doc! {
             "user": user,
             "complete":false,
             "chat_type": "Event",
-            // "chat": serialized_chat,
             "createdAt": datetime,
             "updatedAt": datetime,
         };
-        doc_with_dates.extend(document.clone());
-        Ok(doc_with_dates)
+        doc_with_date.extend(doc.clone());
+        Ok(doc_with_date)
     }
 }
 
@@ -87,15 +81,21 @@ impl EventService {
         limit: i64,
         page: i64,
         user: &Uuid,
-    ) -> Result<EventListRes> {
-        let events_result = base::fetch::<Self>(db, limit, page, user)
+    ) -> Result<EventFetchedRes> {
+        let filter_opts = FetchFilterOptions {
+            find_filter: None,
+            proj_opts: Some(EventFetchRes::build_projection()),
+            limit,
+            page,
+        };
+        let events_results = base::fetch::<Self>(db, filter_opts, user)
             .await
             .expect("event 응답을 받아오지 못했습니다.");
 
-        Ok(EventListRes {
+        Ok(EventFetchedRes {
             status: "success",
-            results: events_result.len(),
-            events: events_result,
+            results: events_results.len(),
+            events: events_results,
         })
     }
 
@@ -156,8 +156,8 @@ impl EventService {
 mod tests {
     use super::*;
     use crate::{
-        domain::types::{ChatType, MsgType},
         infra::db::MongoDB,
+        infra::types::{ChatType, MsgType},
     };
     use dotenv::dotenv;
     use mongodb::{bson::oid::ObjectId, options::UpdateOptions};
@@ -194,7 +194,7 @@ mod tests {
                     id: ObjectId::new(),
                     msg_type: MsgType::Ask,
                     content: "기술스택 토론 예정".to_string(),
-                    created_at: Utc::now(),
+                    createdAt: Utc::now(),
                     booked: false,
                     chat_type: None,
                     chat_msgs: None,

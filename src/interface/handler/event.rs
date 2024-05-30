@@ -7,10 +7,10 @@ use crate::{
         event::{EventModel, EventService},
         sub::chat::ChatMsgService,
     },
+    infra::types::FilterOptions,
     interface::dto::{
         event::req::{CreateEventReq, UpdateEventReq},
         sub::chat::req::{CreateMsgReq, UpdateMsgReq},
-        FilterOptions,
     },
     AppState,
 };
@@ -18,7 +18,7 @@ use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
     response::IntoResponse,
-    routing::{delete, get, post},
+    routing::{get, post},
     Extension, Json, Router,
 };
 

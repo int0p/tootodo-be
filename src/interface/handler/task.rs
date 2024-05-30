@@ -2,7 +2,7 @@ use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
     response::IntoResponse,
-    routing::{delete, get, post},
+    routing::{get, post},
     Extension, Json, Router,
 };
 use std::sync::Arc;
@@ -14,6 +14,7 @@ use crate::{
         sub::{chat::ChatMsgService, task_block::BlockService, task_propV::PropValueService},
         task::{TaskModel, TaskService},
     },
+    infra::types::FilterOptions,
     interface::dto::{
         sub::{
             chat::req::{CreateMsgReq, UpdateMsgReq},
@@ -21,7 +22,6 @@ use crate::{
             task_propV::req::{CreatePropValueReq, UpdatePropValueReq},
         },
         task::req::{CreateTaskReq, UpdateTaskReq},
-        FilterOptions,
     },
     AppState,
 };
@@ -92,28 +92,9 @@ pub async fn task_list_handler(
 pub async fn create_task_handler(
     State(app_state): State<Arc<AppState>>,
     Extension(jwtauth): Extension<JWTAuthMiddleware>,
-    Json(body): Json<CreateTaskReq>,
+    Json(mut body): Json<CreateTaskReq>,
 ) -> Result<impl IntoResponse> {
-    // Property 정보 추가. --- front에서 해야하나?
-    // let category_collection = db.collection::<CategoryModel>("categories");
-    // let category = category_collection
-    //     .find_one(doc! { "_id": task_result.category_id }, None)
-    //     .await
-    //     .expect("Failed to fetch category")
-    //     .expect("Category not found");
-
-    // let properties: Vec<PropValueModel> = category
-    //     .props
-    //     .iter()
-    //     .map(|prop| PropValueModel {
-    //         prop_id: prop.id,
-    //         prop_name: prop.name.clone(),
-    //         value: None,
-    //         prop_type: prop.prop_type.clone(),
-    //     })
-    //     .collect();
-    // TODO: body에 Property 정보 추가.
-    match TaskService::create_task(&app_state.mongodb.db, &body, &jwtauth.user.id)
+    match TaskService::create_task(&app_state.mongodb.db, &mut body, &jwtauth.user.id)
         .await
         .map_err(Error::from)
     {
@@ -299,16 +280,10 @@ pub async fn update_block_handler(
 }
 
 pub async fn fetch_blocks_handler(
-    opts: Option<Query<FilterOptions>>,
     State(app_state): State<Arc<AppState>>,
     Path((task_id,)): Path<(String,)>,
 ) -> Result<impl IntoResponse> {
-    let Query(opts) = opts.unwrap_or_default();
-
-    let limit = opts.limit.unwrap_or(10) as i64;
-    let page = opts.page.unwrap_or(1) as i64;
-
-    match BlockService::fetch_blocks(&app_state.mongodb.db, &task_id, limit, page)
+    match BlockService::fetch_blocks(&app_state.mongodb.db, &task_id)
         .await
         .map_err(Error::from)
     {
@@ -373,16 +348,10 @@ pub async fn update_task_propV_handler(
 }
 
 pub async fn fetch_task_propVs_handler(
-    opts: Option<Query<FilterOptions>>,
     State(app_state): State<Arc<AppState>>,
     Path((task_id,)): Path<(String,)>,
 ) -> Result<impl IntoResponse> {
-    let Query(opts) = opts.unwrap_or_default();
-
-    let limit = opts.limit.unwrap_or(10) as i64;
-    let page = opts.page.unwrap_or(1) as i64;
-
-    match PropValueService::fetch_propVs(&app_state.mongodb.db, &task_id, limit, page)
+    match PropValueService::fetch_propVs(&app_state.mongodb.db, &task_id)
         .await
         .map_err(Error::from)
     {

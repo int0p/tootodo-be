@@ -20,14 +20,26 @@ pub trait MongoArrayRepo {
     const COLL_NAME: &'static str;
     const ARR_NAME: &'static str;
     fn convert_doc_to_response(doc: &Self::ElemModel) -> Result<Self::ElemRes>;
+    fn create_doc(body: &Self::CreateElemReq) -> Result<mongodb::bson::Document> {
+        let ser_data = bson::to_bson(body).map_err(|e| DB(DBError::MongoSerializeBsonError(e)))?;
+        let doc = ser_data.as_document().unwrap();
+
+        let mut doc_with_date = doc! {
+            "id": ObjectId::new(),
+            "createdAt": Utc::now(),
+        };
+
+        doc_with_date.extend(doc.clone());
+        Ok(doc_with_date)
+    }
 }
 
 // S: Service
 pub async fn fetch_elems<S>(
     db: &Database,
     src_id: &str,
-    limit: i64,
-    page: i64,
+    limit: Option<i64>,
+    page: Option<i64>,
 ) -> Result<Vec<S::ElemRes>>
 where
     S: MongoArrayRepo,
@@ -37,20 +49,28 @@ where
     let oid = ObjectId::from_str(src_id).map_err(DBError::MongoGetOidError)?;
 
     // 집계 파이프라인 설정
-    let skip = (page - 1) * limit;
-
-    let pipeline = vec![
-        doc! {
-            "$match": { "_id": oid }
-        },
-        doc! {
-            "$project": {
-                S::ARR_NAME: {
-                    "$slice": [format!("${}", S::ARR_NAME), skip, limit]
-                }
-            }
-        },
-    ];
+    let pipeline = match (limit, page) {
+        (Some(limit), Some(page)) => {
+            let skip = (page - 1) * limit;
+            vec![
+                doc! {
+                    "$match": { "_id": oid }
+                },
+                doc! {
+                    "$project": {
+                        S::ARR_NAME: {
+                            "$slice": [format!("${}", S::ARR_NAME), skip, limit]
+                        }
+                    }
+                },
+            ]
+        }
+        _ => {
+            vec![doc! {
+                "$match": { "_id": oid }
+            }]
+        }
+    };
 
     // 집계 쿼리 실행
     let aggregate_options = AggregateOptions::builder().build();
@@ -129,7 +149,6 @@ pub async fn add_elem<S>(
 where
     S: MongoArrayRepo,
     S::CollModel: DeserializeOwned + Serialize + Unpin + Send + Sync,
-    S::CreateElemReq: Serialize,
 {
     let coll = db.collection::<S::CollModel>(S::COLL_NAME);
 
@@ -147,8 +166,9 @@ where
     let oid = ObjectId::from_str(src_id).map_err(|e| DBError::MongoGetOidError(e))?;
 
     // 배열의 맨 앞에 element 추가. -> 최신순
+    let new_elem_doc = S::create_doc(new_elem)?;
     let update_doc = doc! {
-        "$push": { S::ARR_NAME: {"$each":bson::to_bson(new_elem).map_err(|e|DBError::MongoSerializeBsonError(e))?,"$position":0 }},
+        "$push": { S::ARR_NAME: {"$each":new_elem_doc,"$position":0 }},
         "$set": { "updatedAt": Bson::DateTime(Utc::now().into()) }
     };
 

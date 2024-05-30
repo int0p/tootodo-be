@@ -1,12 +1,10 @@
 pub mod req {
-    use crate::domain::types::{PropValueType, PropertyType};
-    use mongodb::bson::oid::ObjectId;
+    use crate::infra::types::{PropValueType, PropertyType};
     use serde::{Deserialize, Serialize};
-    use uuid::Uuid;
 
     #[derive(Serialize, Deserialize, Debug)]
     pub struct CreatePropValueReq {
-        pub prop_id: ObjectId,
+        pub prop_id: String,
         pub prop_name: String,
         pub value: PropValueType,
         pub prop_type: PropertyType,
@@ -23,10 +21,9 @@ pub mod req {
     }
 }
 pub mod res {
-    use crate::domain::{
-        sub::task_propV::PropValueModel,
-        types::{PropValueType, PropertyType},
-    };
+    use crate::domain::sub::task_propV::PropValueModel;
+    use crate::infra::types::{PropValueType, PropertyType};
+
     use serde::{Deserialize, Serialize};
 
     #[allow(non_snake_case)]

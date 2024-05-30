@@ -4,7 +4,7 @@ use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
     response::IntoResponse,
-    routing::{delete, get, post},
+    routing::{get, post},
     Extension, Json, Router,
 };
 
@@ -14,7 +14,8 @@ use crate::{
         error::{Error, Result},
         habit::HabitService,
     },
-    interface::dto::habit::req::{CreateHabitReq, FilterOptions, UpdateHabitReq},
+    infra::types::FilterOptions,
+    interface::dto::habit::req::{CreateHabitReq, UpdateHabitReq},
     AppState,
 };
 

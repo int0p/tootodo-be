@@ -1,5 +1,19 @@
+use mongodb::bson::Document;
 use serde::{Deserialize, Serialize};
 
+// filter
+#[derive(Deserialize, Debug, Default)]
+pub struct FilterOptions {
+    pub page: Option<usize>,
+    pub limit: Option<usize>,
+}
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub struct FetchFilterOptions {
+    pub find_filter: Option<Document>,
+    pub proj_opts: Option<Document>,
+    pub limit: i64,
+    pub page: i64,
+}
 // schedule
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum ScheduleType {

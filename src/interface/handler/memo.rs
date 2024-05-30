@@ -1,7 +1,8 @@
 use std::sync::Arc;
 
 use crate::domain::memo::MemoService;
-use crate::interface::dto::memo::req::{CreateMemoReq, FilterOptions, UpdateMemoReq};
+use crate::infra::types::FilterOptions;
+use crate::interface::dto::memo::req::{CreateMemoReq, UpdateMemoReq};
 use crate::{
     auth::utils::auth::JWTAuthMiddleware,
     domain::error::{Error, Result},
@@ -11,7 +12,7 @@ use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
     response::IntoResponse,
-    routing::{delete, get, post},
+    routing::{get, post},
     Extension, Json, Router,
 };
 

@@ -5,6 +5,7 @@ use mongodb::{bson::Document, Database};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+use crate::infra::types::FetchFilterOptions;
 use crate::interface::dto::habit::{
     req::{CreateHabitReq, UpdateHabitReq},
     res::{HabitData, HabitListRes, HabitRes, SingleHabitRes},
@@ -12,8 +13,8 @@ use crate::interface::dto::habit::{
 use crate::{
     domain::error::{Error::*, Result},
     domain::repo::base::{self, MongoRepo},
-    domain::types::StatusType,
     infra::db::error::Error as DBError,
+    infra::types::StatusType,
 };
 
 #[allow(non_snake_case)]
@@ -37,10 +38,9 @@ pub struct HabitService;
 
 impl MongoRepo for HabitService {
     const COLL_NAME: &'static str = "habits";
-    const DOC_COLL_NAME: &'static str = "habits";
     type Model = HabitModel;
     type ModelResponse = HabitRes;
-
+    type ModelFetchResponse = HabitRes;
     fn convert_doc_to_response(habit: &HabitModel) -> Result<HabitRes> {
         Ok(HabitRes::from_model(habit))
     }
@@ -72,7 +72,13 @@ impl HabitService {
         page: i64,
         user: &Uuid,
     ) -> Result<HabitListRes> {
-        let habits_result = base::fetch::<Self>(db, limit, page, user)
+        let filter_opts = FetchFilterOptions {
+            find_filter: None,
+            proj_opts: None,
+            limit,
+            page,
+        };
+        let habits_result = base::fetch::<Self>(db, filter_opts, user)
             .await
             .expect("habit 응답을 받아오지 못했습니다.");
 

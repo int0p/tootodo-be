@@ -6,7 +6,7 @@ use crate::domain::error::Result;
 
 use crate::domain::repo::base_array::{self, MongoArrayRepo};
 use crate::domain::task::TaskModel;
-use crate::domain::types::BlockType;
+use crate::infra::types::BlockType;
 use crate::interface::dto::sub::task_block::req::{CreateBlockReq, UpdateBlockReq};
 use crate::interface::dto::sub::task_block::res::*;
 
@@ -20,7 +20,7 @@ pub struct BlockModel {
 }
 
 impl BlockModel {
-    pub fn new(src_id: ObjectId) -> Self {
+    pub fn new_from(src_id: ObjectId) -> Self {
         Self {
             id: ObjectId::new(),
             src_task_id: src_id,
@@ -72,13 +72,8 @@ impl BlockService {
         })
     }
 
-    pub async fn fetch_blocks(
-        db: &Database,
-        category_id: &str,
-        limit: i64,
-        page: i64,
-    ) -> Result<BlockListRes> {
-        let results = base_array::fetch_elems::<Self>(db, category_id, limit, page).await?;
+    pub async fn fetch_blocks(db: &Database, category_id: &str) -> Result<BlockListRes> {
+        let results = base_array::fetch_elems::<Self>(db, category_id, None, None).await?;
         Ok(BlockListRes {
             status: "success",
             results: results.len(),
