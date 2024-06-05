@@ -60,9 +60,9 @@ where
                 bson::to_bson(&doc).map_err(|e| DB(DBError::MongoSerializeBsonError(e)))?;
             return Ok(serialized_data.as_document().unwrap().clone());
         }
-        Ok(None) => return Err(NotFoundError(oid.to_string())),
-        Err(e) => return Err(DB(DBError::MongoQueryError(e))),
-    };
+        Ok(None) => Err(NotFoundError(oid.to_string())),
+        Err(e) => Err(DB(DBError::MongoQueryError(e))),
+    }
 }
 
 pub async fn update_doc_ret_model<Model>(
@@ -93,9 +93,9 @@ where
         .await
     {
         Ok(Some(doc)) => {
-            return Ok(doc);
+            Ok(doc)
         }
-        Ok(None) => return Err(NotFoundError(oid.to_string())),
-        Err(e) => return Err(DB(DBError::MongoQueryError(e))),
-    };
+        Ok(None) => Err(NotFoundError(oid.to_string())),
+        Err(e) => Err(DB(DBError::MongoQueryError(e))),
+    }
 }

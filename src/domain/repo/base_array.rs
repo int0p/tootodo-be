@@ -90,10 +90,10 @@ where
         while let Some(elem_bson) = array.iter().next() {
             if let Ok(doc) = elem_bson
                 .as_document()
-                .ok_or(|e| DBError::MongoDeserializeBsonError(e))
+                .ok_or(DBError::MongoDeserializeBsonError)
             {
                 let elem: S::ElemModel = bson::from_bson(Bson::Document(doc.clone()))
-                    .map_err(|e| DBError::MongoDeserializeBsonError(e))?;
+                    .map_err(DBError::MongoDeserializeBsonError)?;
                 elems.push(S::convert_doc_to_response(&elem)?);
             };
         }
@@ -109,8 +109,8 @@ where
 {
     let doc_coll = db.collection::<Document>(S::COLL_NAME);
 
-    let oid = ObjectId::from_str(src_id).map_err(|e| DBError::MongoGetOidError(e))?;
-    let elem_oid = ObjectId::from_str(elem_id).map_err(|e| DBError::MongoGetOidError(e))?;
+    let oid = ObjectId::from_str(src_id).map_err(DBError::MongoGetOidError)?;
+    let elem_oid = ObjectId::from_str(elem_id).map_err(DBError::MongoGetOidError)?;
 
     let doc = match doc_coll.find_one(doc! { "_id": oid }, None).await {
         Ok(Some(doc)) => doc,
@@ -120,7 +120,7 @@ where
 
     let array = doc
         .get_array(S::ARR_NAME)
-        .map_err(|e| DBError::MongoDataError(e))?;
+        .map_err(DBError::MongoDataError)?;
 
     // Find the specific element by ID within the array
     for elem_bson in array {
@@ -128,7 +128,7 @@ where
             Some(doc) => match doc.get_object_id("_id") {
                 Ok(id) if id == elem_oid => {
                     let elem: S::ElemModel = bson::from_bson(Bson::Document(doc.clone()))
-                        .map_err(|e| DBError::MongoDeserializeBsonError(e))?;
+                        .map_err(DBError::MongoDeserializeBsonError)?;
                     return S::convert_doc_to_response(&elem);
                 }
                 _ => continue,
@@ -160,10 +160,10 @@ where
             .build();
         coll.create_index(index_model, None)
             .await
-            .map_err(|e| DBError::MongoError(e))?;
+            .map_err(DBError::MongoError)?;
     }
 
-    let oid = ObjectId::from_str(src_id).map_err(|e| DBError::MongoGetOidError(e))?;
+    let oid = ObjectId::from_str(src_id).map_err(DBError::MongoGetOidError)?;
 
     // 배열의 맨 앞에 element 추가. -> 최신순
     let new_elem_doc = S::create_doc(new_elem)?;
@@ -184,8 +184,8 @@ where
                 Some(first_elem) => {
                     if let Some(doc) = first_elem.as_document() {
                         let elem: S::ElemModel = bson::from_bson(Bson::Document(doc.clone()))
-                            .map_err(|e| DBError::MongoDeserializeBsonError(e))?;
-                        return S::convert_doc_to_response(&elem);
+                            .map_err(DBError::MongoDeserializeBsonError)?;
+                        S::convert_doc_to_response(&elem)
                     } else {
                         Err(NotFoundError(first_elem.to_string()))
                     }
@@ -207,8 +207,8 @@ where
 {
     let coll = db.collection::<S::CollModel>(S::COLL_NAME);
 
-    let oid = ObjectId::from_str(src_id).map_err(|e| DBError::MongoGetOidError(e))?;
-    let elem_oid = ObjectId::from_str(elem_id).map_err(|e| DBError::MongoGetOidError(e))?;
+    let oid = ObjectId::from_str(src_id).map_err(DBError::MongoGetOidError)?;
+    let elem_oid = ObjectId::from_str(elem_id).map_err(DBError::MongoGetOidError)?;
 
     let update_doc = doc! {
         "$pull": { S::ARR_NAME: doc! { "_id": elem_oid } },
@@ -219,7 +219,7 @@ where
         Ok(updated_doc) => {
             let array = updated_doc
                 .get_array(S::ARR_NAME)
-                .map_err(|e| DBError::MongoDataError(e))?;
+                .map_err(DBError::MongoDataError)?;
 
             // 배열 내에 삭제한 값이 없는지 확인
             for elem_bson in array {
@@ -252,15 +252,15 @@ where
 {
     let coll = db.collection::<S::CollModel>(S::COLL_NAME);
 
-    let oid = ObjectId::from_str(src_id).map_err(|e| DBError::MongoGetOidError(e))?;
-    let elem_oid = ObjectId::from_str(elem_id).map_err(|e| DBError::MongoGetOidError(e))?;
+    let oid = ObjectId::from_str(src_id).map_err(DBError::MongoGetOidError)?;
+    let elem_oid = ObjectId::from_str(elem_id).map_err(DBError::MongoGetOidError)?;
 
     let mut update_doc = doc! {
         "updatedAt": Bson::DateTime(Utc::now().into())
     };
 
     let update_elem_bson =
-        bson::to_bson(update_elem).map_err(|e| DBError::MongoSerializeBsonError(e))?;
+        bson::to_bson(update_elem).map_err(DBError::MongoSerializeBsonError)?;
 
     if let Bson::Document(update_elem_doc) = update_elem_bson {
         for (key, value) in update_elem_doc {
@@ -282,7 +282,7 @@ where
         Ok(updated_doc) => {
             let array = updated_doc
                 .get_array(S::ARR_NAME)
-                .map_err(|e| DBError::MongoDataError(e))?;
+                .map_err(DBError::MongoDataError)?;
 
             // 배열 내에서 업데이트한 원소 찾아 리턴.
             for elem_bson in array {
@@ -294,7 +294,7 @@ where
                 {
                     return S::convert_doc_to_response(
                         &bson::from_bson(elem_bson.clone())
-                            .map_err(|e| DBError::MongoDeserializeBsonError(e))?,
+                            .map_err(DBError::MongoDeserializeBsonError)?,
                     );
                 }
             }

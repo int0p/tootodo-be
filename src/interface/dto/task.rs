@@ -3,8 +3,11 @@ pub mod req {
         sub::{task_block::BlockModel, task_propV::PropValueModel},
         task::TaskModel,
     };
+    use uuid::Uuid;
+
     use crate::infra::types::ChatType;
     use chrono::{DateTime, NaiveDate, Utc};
+    use mongodb::bson::{self, Document};
     use serde::{Deserialize, Serialize};
 
     #[derive(Serialize, Deserialize, Debug)]
@@ -25,7 +28,7 @@ pub mod req {
         pub chat_type: Option<ChatType>,
     }
 
-    #[derive(Serialize, Deserialize, Debug)]
+    #[derive(Serialize, Deserialize, Debug, Default)]
     pub struct UpdateTaskReq {
         #[serde(skip_serializing_if = "Option::is_none")]
         pub title: Option<String>,
@@ -49,19 +52,46 @@ pub mod req {
         pub chat_type: Option<ChatType>,
     }
 
-    impl Default for UpdateTaskReq {
-        fn default() -> Self {
-            Self {
-                title: None,
-                category_id: None,
-                category_color: None,
-                category_name: None,
-                start_date: None,
-                due_at: None,
-                parent_id: None,
-                subtasks: None,
-                chat_type: None,
+    #[allow(non_snake_case)]
+    #[derive(Deserialize, Serialize, Debug)]
+    pub struct TaskFetchOptions {
+        pub id: String,
+        pub user: Uuid,
+        pub title: String,
+        pub start_date: Option<NaiveDate>,
+        pub due_at: Option<DateTime<Utc>>,
+
+        pub category_id: String,
+        pub prop_values: Vec<PropValueModel>,
+
+        pub subtasks: Vec<TaskFetchOptions>,
+
+        pub createdAt: DateTime<Utc>,
+        pub updatedAt: DateTime<Utc>,
+    }
+
+    impl TaskFetchOptions {
+        pub fn build_projection() -> Document {
+            let mut projection = Document::new();
+
+            let fields = vec![
+                "_id",
+                "user",
+                "title",
+                "start_date",
+                "due_at",
+                "category_id",
+                "prop_values",
+                "subtasks",
+                "createdAt",
+                "updatedAt",
+            ];
+
+            for field in fields {
+                projection.insert(field, 1);
             }
+
+            projection
         }
     }
 }
@@ -143,55 +173,5 @@ pub mod res {
         pub status: &'static str,
         pub results: usize,
         pub tasks: Vec<TaskRes>,
-    }
-
-    #[allow(non_snake_case)]
-    #[derive(Deserialize, Serialize, Debug)]
-    pub struct TaskFetchRes {
-        pub id: String,
-        pub user: Uuid,
-        pub title: String,
-        pub start_date: Option<NaiveDate>,
-        pub due_at: Option<DateTime<Utc>>,
-
-        pub category_id: String,
-        pub prop_values: Vec<PropValueModel>,
-
-        pub subtasks: Vec<TaskFetchRes>,
-
-        pub createdAt: DateTime<Utc>,
-        pub updatedAt: DateTime<Utc>,
-    }
-
-    impl TaskFetchRes {
-        pub fn build_projection() -> Document {
-            let mut projection = Document::new();
-
-            let fields = vec![
-                "_id",
-                "user",
-                "title",
-                "start_date",
-                "due_at",
-                "category_id",
-                "prop_values",
-                "subtasks",
-                "createdAt",
-                "updatedAt",
-            ];
-
-            for field in fields {
-                projection.insert(field, 1);
-            }
-
-            projection
-        }
-    }
-
-    #[derive(Serialize, Debug)]
-    pub struct TaskFetchedRes {
-        pub status: &'static str,
-        pub results: usize,
-        pub tasks: Vec<TaskFetchRes>,
     }
 }

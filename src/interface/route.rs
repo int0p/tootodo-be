@@ -15,7 +15,7 @@ pub fn create_router(app_state: Arc<AppState>) -> Router {
         .merge(habit_router(app_state.clone()))
         .merge(memo_router(app_state.clone()))
         .merge(task_router(app_state.clone()))
-        .layer(middleware::from_fn_with_state(
+        .route_layer(middleware::from_fn_with_state(
             app_state.clone(),
             auth_request,
         ))

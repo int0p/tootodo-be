@@ -25,7 +25,6 @@ pub mod res {
     use crate::infra::types::{PropValueType, PropertyType};
 
     use serde::{Deserialize, Serialize};
-
     #[allow(non_snake_case)]
     #[derive(Serialize, Deserialize, Debug)]
     pub struct PropValueRes {
@@ -35,6 +34,7 @@ pub mod res {
         pub prop_type: PropertyType,
     }
 
+    #[allow(non_snake_case)]
     impl PropValueRes {
         pub fn from_model(propV: &PropValueModel) -> Self {
             Self {
@@ -46,6 +46,7 @@ pub mod res {
         }
     }
 
+    #[allow(non_snake_case)]
     #[derive(Serialize, Debug)]
     pub struct PropValueData {
         pub propV: PropValueRes,
@@ -57,6 +58,7 @@ pub mod res {
         pub data: PropValueData,
     }
 
+    #[allow(non_snake_case)]
     #[derive(Serialize, Debug)]
     pub struct PropValueListRes {
         pub status: &'static str,

@@ -8,7 +8,7 @@ pub struct FilterOptions {
     pub limit: Option<usize>,
 }
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-pub struct FetchFilterOptions {
+pub struct QueryFilterOptions {
     pub find_filter: Option<Document>,
     pub proj_opts: Option<Document>,
     pub limit: i64,

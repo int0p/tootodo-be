@@ -5,7 +5,7 @@ use uuid::Uuid;
 use std::{collections::HashSet, str::FromStr};
 
 use super::sub::property::PropertyModel;
-use crate::infra::types::{FetchFilterOptions, PropertyType, StatusType};
+use crate::infra::types::{PropertyType, QueryFilterOptions, StatusType};
 use crate::{
     domain::error::{Error::*, Result},
     domain::repo::base::{self, MongoRepo},
@@ -44,7 +44,6 @@ impl MongoRepo for CategoryService {
     const COLL_NAME: &'static str = "categories";
     type Model = CategoryModel;
     type ModelResponse = CategoryRes;
-    type ModelFetchResponse = CategoryRes;
     fn convert_doc_to_response(category: &CategoryModel) -> Result<CategoryRes> {
         let category_response = CategoryRes {
             user: category.user,
@@ -96,7 +95,7 @@ impl CategoryService {
         page: i64,
         user: &Uuid,
     ) -> Result<CategoryListRes> {
-        let filter_opts = FetchFilterOptions {
+        let filter_opts = QueryFilterOptions {
             find_filter: None,
             proj_opts: None,
             limit,
@@ -118,7 +117,7 @@ impl CategoryService {
         body: &CreateCategoryReq,
         user: &Uuid,
     ) -> Result<SingleCategoryRes> {
-        let category_result = base::create::<Self, CreateCategoryReq>(db, body, user)
+        let category_result = base::create::<Self, CreateCategoryReq>(db, body, user, None)
             .await
             .expect("category 생성에 실패했습니다.");
 

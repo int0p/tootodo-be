@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::{
-    auth::utils::auth::JWTAuthMiddleware,
+    auth::utils::auth::{auth_request, JWTAuthMiddleware},
     domain::{
         error::{Error, Result},
         event::{EventModel, EventService},
@@ -9,7 +9,7 @@ use crate::{
     },
     infra::types::FilterOptions,
     interface::dto::{
-        event::req::{CreateEventReq, UpdateEventReq},
+        event::req::{CreateEventReq, EventFilterOptions, UpdateEventReq},
         sub::chat::req::{CreateMsgReq, UpdateMsgReq},
     },
     AppState,
@@ -17,10 +17,12 @@ use crate::{
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
+    middleware,
     response::IntoResponse,
     routing::{get, post},
     Extension, Json, Router,
 };
+use chrono::Utc;
 
 pub fn event_router(app_state: Arc<AppState>) -> Router {
     Router::new()
@@ -44,11 +46,15 @@ pub fn event_router(app_state: Arc<AppState>) -> Router {
         //     "/events/:event_id/chat/:msg_id/add_chat",
         //     post(add_chat_to_event_msg_handler),
         // )
+        .route_layer(middleware::from_fn_with_state(
+            app_state.clone(),
+            auth_request,
+        ))
         .with_state(app_state)
 }
 
 pub async fn event_list_handler(
-    opts: Option<Query<FilterOptions>>,
+    opts: Option<Query<EventFilterOptions>>,
     State(app_state): State<Arc<AppState>>,
     Extension(jwtauth): Extension<JWTAuthMiddleware>,
 ) -> Result<impl IntoResponse> {
@@ -56,10 +62,22 @@ pub async fn event_list_handler(
 
     let limit = opts.limit.unwrap_or(10) as i64;
     let page = opts.page.unwrap_or(1) as i64;
+    let start_date = opts
+        .start_date
+        .unwrap_or(Utc::now().date_naive())
+        .to_string();
+    let end_date = opts.end_date.unwrap_or(Utc::now().date_naive()).to_string();
 
-    match EventService::fetch_events(&app_state.mongodb.db, limit, page, &jwtauth.user.id)
-        .await
-        .map_err(Error::from)
+    match EventService::fetch_events(
+        &app_state.mongodb.db,
+        limit,
+        page,
+        &start_date,
+        &end_date,
+        &jwtauth.user.id,
+    )
+    .await
+    .map_err(Error::from)
     {
         Ok(res) => Ok(Json(res)),
         Err(e) => Err(e),

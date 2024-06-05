@@ -2,14 +2,13 @@ use crate::interface::dto::sub::daily_item::req::*;
 use crate::interface::dto::sub::daily_item::res::*;
 use crate::{
     domain::daily::DailyModel,
-    domain::error::{Error::*, Result},
+    domain::error::{Result},
     domain::repo::base_array::{self, MongoArrayRepo},
     domain::repo::ElemInfo,
-    infra::db::error::Error as DBError,
 };
 use chrono::{DateTime, Utc};
 use mongodb::bson::oid::ObjectId;
-use mongodb::bson::{self, doc, Document};
+use mongodb::bson::{self, doc};
 use mongodb::Database;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};

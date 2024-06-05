@@ -1,6 +1,5 @@
 use chrono::{DateTime, NaiveDate, Utc};
 use futures::TryStreamExt;
-use serde_json::Value;
 use std::str::FromStr;
 
 use super::sub::{
@@ -17,13 +16,13 @@ use crate::{
     },
     infra::{
         db::error::Error as DBError,
-        types::{ChatType, FetchFilterOptions, PropertyType},
+        types::{ChatType, PropertyType, QueryFilterOptions},
     },
     interface::dto::{
         sub::task_propV::{req::UpdatePropValueReq, res::PropValueListRes},
         task::{
-            req::{CreateTaskReq, UpdateTaskReq},
-            res::{SingleTaskRes, TaskData, TaskFetchRes, TaskFetchedRes, TaskListRes, TaskRes},
+            req::{CreateTaskReq, TaskFetchOptions, UpdateTaskReq},
+            res::{SingleTaskRes, TaskData, TaskListRes, TaskRes},
         },
     },
 };
@@ -98,7 +97,6 @@ impl MongoRepo for TaskService {
     const COLL_NAME: &'static str = "tasks";
     type Model = TaskModel;
     type ModelResponse = TaskRes;
-    type ModelFetchResponse = TaskFetchRes;
 
     fn convert_doc_to_response(task: &TaskModel) -> Result<TaskRes> {
         Ok(TaskRes::from_model(task))
@@ -129,10 +127,10 @@ impl TaskService {
         limit: i64,
         page: i64,
         user: &Uuid,
-    ) -> Result<TaskFetchedRes> {
-        let filter_opts = FetchFilterOptions {
+    ) -> Result<TaskListRes> {
+        let filter_opts = QueryFilterOptions {
             find_filter: Some(doc! {"user": user}),
-            proj_opts: Some(TaskFetchRes::build_projection()),
+            proj_opts: Some(TaskFetchOptions::build_projection()),
             limit,
             page,
         };
@@ -140,7 +138,7 @@ impl TaskService {
             .await
             .expect("task 응답을 받아오지 못했습니다.");
 
-        Ok(TaskFetchedRes {
+        Ok(TaskListRes {
             status: "success",
             results: tasks_result.len(),
             tasks: tasks_result,
@@ -153,10 +151,10 @@ impl TaskService {
         page: i64,
         category_id: &str,
         user: &Uuid,
-    ) -> Result<TaskFetchedRes> {
-        let filter_opts = FetchFilterOptions {
+    ) -> Result<TaskListRes> {
+        let filter_opts = QueryFilterOptions {
             find_filter: Some(doc! {"user": user,"category_id":category_id}),
-            proj_opts: Some(TaskFetchRes::build_projection()),
+            proj_opts: Some(TaskFetchOptions::build_projection()),
             limit,
             page,
         };
@@ -165,7 +163,7 @@ impl TaskService {
             .await
             .expect("task 응답을 받아오지 못했습니다.");
 
-        Ok(TaskFetchedRes {
+        Ok(TaskListRes {
             status: "success",
             results: tasks_result.len(),
             tasks: tasks_result,
@@ -180,9 +178,10 @@ impl TaskService {
         if let Ok(prop_values) = Self::get_prop_values(db, &body.category_id).await {
             body.prop_values = Some(prop_values);
         }
-        let task_result = base::create::<Self, CreateTaskReq>(db, body, user)
-            .await
-            .expect("task 생성에 실패했습니다.");
+        let task_result =
+            base::create::<Self, CreateTaskReq>(db, body, user, Some(vec!["category_id"]))
+                .await
+                .expect("task 생성에 실패했습니다.");
 
         Ok(SingleTaskRes {
             status: "success",
@@ -268,9 +267,8 @@ impl TaskService {
         user_id: &Uuid,
     ) -> Result<PropValueListRes> {
         let tasks_collection = db.collection::<TaskModel>("tasks");
-        let category_oid =
-            ObjectId::from_str(&category_id).map_err(|e| DBError::MongoGetOidError(e))?;
-        let prop_oid = ObjectId::from_str(&prop_id).map_err(|e| DBError::MongoGetOidError(e))?;
+        let category_oid = ObjectId::from_str(category_id).map_err(DBError::MongoGetOidError)?;
+        let prop_oid = ObjectId::from_str(prop_id).map_err(DBError::MongoGetOidError)?;
         let mut cursor = tasks_collection
             .find(doc! { "category_id": category_oid, "user": user_id }, None)
             .await?;
@@ -279,10 +277,7 @@ impl TaskService {
 
         while let Some(task) = cursor.try_next().await? {
             if let Some(prop_value) = task.prop_values.iter().find(|p| p.prop_id == prop_oid) {
-                let values = match &prop_value.values {
-                    Some(val) => Some(vec![val.clone()]),
-                    None => None,
-                };
+                let values = prop_value.values.as_ref().map(|val| vec![val.clone()]);
 
                 let update_prop_req = UpdatePropValueReq {
                     name: Some(new_prop_name.to_string()),
@@ -291,7 +286,7 @@ impl TaskService {
                 };
 
                 let prop_result =
-                    PropValueService::update_propV(db, &category_id, &prop_id, &update_prop_req)
+                    PropValueService::update_propV(db, category_id, prop_id, &update_prop_req)
                         .await?;
 
                 prop_results.push(prop_result.data.propV);
@@ -327,5 +322,94 @@ impl TaskService {
             })
             .collect::<Vec<PropValueModel>>();
         Ok(prop_values)
+    }
+
+    // subtask
+    pub async fn add_subtask(self, db: &Database, id: &str, user: &Uuid) -> Result<SingleTaskRes> {
+        let task_oid = ObjectId::from_str(id).map_err(DBError::MongoGetOidError)?;
+
+        // Retrieve the original task
+        let coll = db.collection::<TaskModel>("tasks");
+        let mut original_task = match coll
+            .find_one(doc! { "_id": &task_oid, "user": user }, None)
+            .await
+        {
+            Ok(Some(doc)) => doc,
+            Ok(None) => return Err(NotFoundError(task_oid.to_string())),
+            Err(e) => return Err(DB(DBError::MongoQueryError(e))),
+        };
+
+        // Add the new subtask to the original task's subtasks
+        let mut subtask = TaskModel::new_subtask(&original_task);
+        if let Ok(prop_values) =
+            Self::get_prop_values(db, &original_task.category_id.to_hex()).await
+        {
+            subtask.prop_values = prop_values;
+        }
+        original_task.subtasks.push(subtask);
+
+        // Update the original task in the database
+        let subtasks_bson = bson::to_bson(&original_task.subtasks)
+            .map_err(|e| DB(DBError::MongoSerializeBsonError(e)))?;
+
+        coll.update_one(
+            doc! { "_id": &task_oid, "user": user },
+            doc! { "$set": { "subtasks": subtasks_bson }},
+            None,
+        )
+        .await?;
+
+        let task_result = Self::convert_doc_to_response(&original_task)?;
+
+        Ok(SingleTaskRes {
+            status: "success",
+            data: TaskData { task: task_result },
+        })
+    }
+
+    pub async fn get_subtasks(db: &Database, id: &str, user: &Uuid) -> Result<SingleTaskRes> {
+        // Parse the task id
+        let task_oid = ObjectId::from_str(id).map_err(DBError::MongoGetOidError)?;
+
+        // Define the aggregation pipeline
+        let pipeline = vec![
+            doc! { "$match": { "_id": &task_oid, "user": user }},
+            doc! {
+                "$graphLookup": {
+                    "from": "tasks",
+                    "startWith": "$_id",
+                    "connectFromField": "_id",
+                    "connectToField": "parent_id",
+                    "as": "subtasks",
+                    "maxDepth": 5,
+                    "depthField": "depth"
+                }
+            },
+        ];
+
+        let options = AggregateOptions::builder().allow_disk_use(true).build();
+        let tasks_collection = db.collection::<TaskModel>("tasks");
+        let mut cursor = tasks_collection.aggregate(pipeline, options).await?;
+        let mut tasks = Vec::new();
+
+        while let Some(result) = cursor.try_next().await? {
+            tasks.push(bson::from_document::<TaskModel>(result));
+        }
+
+        // Assuming there's only one task matched, as we queried by _id
+        let updated_task = match tasks.into_iter().next() {
+            Some(Ok(task)) => task,
+            Some(Err(e)) => return Err(DB(DBError::MongoDeserializeBsonError(e))),
+            None => return Err(NotFoundError(task_oid.to_string())),
+        };
+
+        // convert doc to Res
+        let task_result = Self::convert_doc_to_response(&updated_task)?;
+
+        // Return the updated task
+        Ok(SingleTaskRes {
+            status: "success",
+            data: TaskData { task: task_result },
+        })
     }
 }

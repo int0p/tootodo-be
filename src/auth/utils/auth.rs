@@ -142,6 +142,7 @@ pub async fn auth_request(
         });
 
     let access_token = access_token.ok_or_else(|| Error::NoAccessToken)?;
+    // tracing::debug!("Access token from cookie or header: {:?}", &access_token);
 
     let access_token_details =
         match token::verify_jwt_token(data.env.access_token_public_key.to_owned(), &access_token) {

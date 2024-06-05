@@ -9,9 +9,8 @@ use crate::interface::dto::sub::chat::req::{CreateMsgReq, UpdateMsgReq};
 
 use crate::interface::dto::sub::chat::res::*;
 use crate::{
-    domain::error::{Error::*, Result},
+    domain::error::{Result},
     domain::repo::base_array::{self, MongoArrayRepo},
-    infra::db::error::Error as DBError,
 };
 
 use crate::domain::event::EventModel;

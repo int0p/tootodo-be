@@ -14,7 +14,7 @@ pub struct DailyModel {
     pub user: Uuid,
     pub date: NaiveDate,
     pub diary: String,
-    pub feedback: i8,
+    pub rating: i8,
     pub tasks: Vec<DailyTaskModel>,
     pub events: Vec<DailyEventModel>,
     pub habits: Vec<DailyHabitModel>,

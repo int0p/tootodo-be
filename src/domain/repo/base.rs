@@ -2,7 +2,7 @@ use chrono::Utc;
 use futures::StreamExt;
 use mongodb::bson::{doc, oid::ObjectId};
 use mongodb::bson::{from_document, Bson, Document};
-use mongodb::options::FindOptions;
+use mongodb::options::{FindOptions, IndexOptions};
 use mongodb::{bson, Database, IndexModel};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
@@ -12,14 +12,13 @@ use uuid::Uuid;
 
 use crate::domain::error::{Error::*, Result};
 use crate::infra::db::error::Error as DBError;
-use crate::infra::types::FetchFilterOptions;
+use crate::infra::types::QueryFilterOptions;
 
 use super::utils::{find_mdoc_by_id, update_doc_ret_model};
 
 pub trait MongoRepo {
     type Model;
     type ModelResponse;
-    type ModelFetchResponse: DeserializeOwned;
     const COLL_NAME: &'static str;
     fn convert_doc_to_response(doc: &Self::Model) -> Result<Self::ModelResponse>;
     fn create_doc<Schema: Serialize>(user: &Uuid, body: &Schema) -> Result<Document>;
@@ -28,18 +27,18 @@ pub trait MongoRepo {
 // S: Service
 pub async fn fetch<S>(
     db: &Database,
-    filter_opts: FetchFilterOptions,
+    filter_opts: QueryFilterOptions,
     user: &Uuid,
-) -> Result<Vec<S::ModelFetchResponse>>
+) -> Result<Vec<S::ModelResponse>>
 where
     S: MongoRepo,
     S::Model: DeserializeOwned + Serialize + Unpin + Send + Sync,
 {
-    let doc_coll = db.collection::<Document>(S::COLL_NAME);
+    let coll = db.collection::<S::Model>(S::COLL_NAME);
 
     let (find_filter, proj_opts, limit, page) = (
         filter_opts.find_filter.unwrap_or(doc! {"user": user}),
-        filter_opts.proj_opts.unwrap_or(doc! {}),
+        filter_opts.proj_opts.unwrap_or_default(),
         filter_opts.limit,
         filter_opts.page,
     );
@@ -50,17 +49,16 @@ where
         .skip(u64::try_from((page - 1) * limit).unwrap())
         .build();
 
-    let mut cursor = doc_coll
+    let mut cursor = coll
         .find(find_filter, find_options)
         .await
-        .map_err(|e| DBError::MongoQueryError(e))?;
+        .map_err(DBError::MongoQueryError)?;
 
-    let mut json_result: Vec<S::ModelFetchResponse> = Vec::new();
+    let mut json_result: Vec<S::ModelResponse> = Vec::new();
     while let Some(result) = cursor.next().await {
         match result {
             Ok(doc) => {
-                let res: S::ModelFetchResponse =
-                    from_document(doc).map_err(|e| DBError::MongoDeserializeBsonError(e))?;
+                let res = S::convert_doc_to_response(&doc)?;
                 json_result.push(res);
             }
             Err(e) => return Err(DB(DBError::MongoQueryError(e))),
@@ -74,6 +72,7 @@ pub async fn create<S, Schema>(
     db: &Database,
     body: &Schema,
     user: &Uuid,
+    indexes: Option<Vec<&str>>,
 ) -> Result<S::ModelResponse>
 where
     S: MongoRepo,
@@ -85,16 +84,23 @@ where
 
     let document = S::create_doc::<Schema>(user, body)?;
 
-    // let options = IndexOptions::builder().unique(true).build();
-    let index = IndexModel::builder()
-        .keys(doc! {"user": 1})
-        // .options(options)
-        .build();
+    if let Some(index_fields) = indexes {
+        let mut index_doc = doc! {};
+        for field in index_fields {
+            index_doc.insert(field, 1);
+        }
 
-    match coll.create_index(index, None).await {
-        Ok(_) => {}
-        Err(e) => return Err(DB(DBError::MongoQueryError(e))),
-    };
+        index_doc.insert("user", 1);
+
+        let index = IndexModel::builder()
+            .keys(index_doc)
+            .options(IndexOptions::builder().unique(false).build())
+            .build();
+
+        coll.create_index(index, None)
+            .await
+            .map_err(DBError::MongoError)?;
+    }
 
     // 생성된 문서를 db에 추가.
     let insert_result = match doc_coll.insert_one(&document, None).await {
@@ -129,7 +135,7 @@ where
     let coll = db.collection::<S::Model>(S::COLL_NAME);
 
     // model의 id를 ObjectId로 변환
-    let oid = ObjectId::from_str(id).map_err(|e| DBError::MongoGetOidError(e))?;
+    let oid = ObjectId::from_str(id).map_err(DBError::MongoGetOidError)?;
 
     // id를 이용해 문서를 찾음.
     let doc = find_mdoc_by_id(&coll, &oid, doc! {"_id": oid, "user":user}).await?;
@@ -150,7 +156,7 @@ where
 {
     let coll = db.collection::<S::Model>(S::COLL_NAME);
 
-    let oid = ObjectId::from_str(id).map_err(|e| DBError::MongoGetOidError(e))?;
+    let oid = ObjectId::from_str(id).map_err(DBError::MongoGetOidError)?;
 
     let mut update_doc = bson::to_document(body).map_err(DBError::MongoSerializeBsonError)?;
     update_doc.insert("updatedAt", Bson::DateTime(Utc::now().into()));
@@ -172,7 +178,7 @@ where
 pub async fn delete<S: MongoRepo>(db: &Database, id: &str) -> Result<()> {
     let doc_coll = db.collection::<Document>(S::COLL_NAME);
 
-    let oid = ObjectId::from_str(id).map_err(|e| DBError::MongoGetOidError(e))?;
+    let oid = ObjectId::from_str(id).map_err(DBError::MongoGetOidError)?;
     let filter = doc! {"_id": oid };
 
     let result = doc_coll

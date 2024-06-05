@@ -5,7 +5,7 @@ use mongodb::{bson::Document, Database};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::infra::types::FetchFilterOptions;
+use crate::infra::types::QueryFilterOptions;
 use crate::interface::dto::habit::{
     req::{CreateHabitReq, UpdateHabitReq},
     res::{HabitData, HabitListRes, HabitRes, SingleHabitRes},
@@ -40,7 +40,6 @@ impl MongoRepo for HabitService {
     const COLL_NAME: &'static str = "habits";
     type Model = HabitModel;
     type ModelResponse = HabitRes;
-    type ModelFetchResponse = HabitRes;
     fn convert_doc_to_response(habit: &HabitModel) -> Result<HabitRes> {
         Ok(HabitRes::from_model(habit))
     }
@@ -72,7 +71,7 @@ impl HabitService {
         page: i64,
         user: &Uuid,
     ) -> Result<HabitListRes> {
-        let filter_opts = FetchFilterOptions {
+        let filter_opts = QueryFilterOptions {
             find_filter: None,
             proj_opts: None,
             limit,
@@ -94,7 +93,7 @@ impl HabitService {
         body: &CreateHabitReq,
         user: &Uuid,
     ) -> Result<SingleHabitRes> {
-        let habit_result = base::create::<Self, CreateHabitReq>(db, body, user)
+        let habit_result = base::create::<Self, CreateHabitReq>(db, body, user, None)
             .await
             .expect("habit 생성에 실패했습니다.");
 

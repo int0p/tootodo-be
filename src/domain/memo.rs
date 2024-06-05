@@ -5,7 +5,7 @@ use mongodb::{bson::Document, Database};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::infra::types::FetchFilterOptions;
+use crate::infra::types::QueryFilterOptions;
 use crate::interface::dto::memo::{
     req::{CreateMemoReq, UpdateMemoReq},
     res::{MemoData, MemoListRes, MemoRes, SingleMemoRes},
@@ -39,7 +39,6 @@ impl MongoRepo for MemoService {
     const COLL_NAME: &'static str = "memos";
     type Model = MemoModel;
     type ModelResponse = MemoRes;
-    type ModelFetchResponse = MemoRes;
     fn convert_doc_to_response(memo: &MemoModel) -> Result<MemoRes> {
         Ok(MemoRes::from_model(memo))
     }
@@ -68,7 +67,7 @@ impl MemoService {
         page: i64,
         user: &Uuid,
     ) -> Result<MemoListRes> {
-        let filter_opts = FetchFilterOptions {
+        let filter_opts = QueryFilterOptions {
             find_filter: None,
             proj_opts: None,
             limit,
@@ -92,7 +91,7 @@ impl MemoService {
         page: i64,
         user: &Uuid,
     ) -> Result<MemoListRes> {
-        let filter_opts = FetchFilterOptions {
+        let filter_opts = QueryFilterOptions {
             find_filter: Some(doc! {"user":user,"color":color}),
             proj_opts: None,
             limit,
@@ -114,7 +113,7 @@ impl MemoService {
         body: &CreateMemoReq,
         user: &Uuid,
     ) -> Result<SingleMemoRes> {
-        let memo_result = base::create::<Self, CreateMemoReq>(db, body, user)
+        let memo_result = base::create::<Self, CreateMemoReq>(db, body, user, Some(vec!["color"]))
             .await
             .expect("memo 생성에 실패했습니다.");
 
