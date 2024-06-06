@@ -7,6 +7,7 @@ use mongodb::{bson, Database, IndexModel};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use std::convert::TryFrom;
+use std::fmt::Debug;
 use std::str::FromStr;
 use uuid::Uuid;
 
@@ -17,7 +18,7 @@ use crate::infra::types::QueryFilterOptions;
 use super::utils::{find_mdoc_by_id, update_doc_ret_model};
 
 pub trait MongoRepo {
-    type Model;
+    type Model: Debug;
     type ModelResponse;
     const COLL_NAME: &'static str;
     fn convert_doc_to_response(doc: &Self::Model) -> Result<Self::ModelResponse>;
@@ -58,6 +59,7 @@ where
     while let Some(result) = cursor.next().await {
         match result {
             Ok(doc) => {
+                // tracing::info!("doc: {:?}", &doc);
                 let res = S::convert_doc_to_response(&doc)?;
                 json_result.push(res);
             }

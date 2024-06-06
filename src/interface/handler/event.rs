@@ -62,6 +62,7 @@ pub async fn event_list_handler(
 
     let limit = opts.limit.unwrap_or(10) as i64;
     let page = opts.page.unwrap_or(1) as i64;
+    // todo: 날짜 입력 없으면 모든 events 가져오도록  코드 수정.
     let start_date = opts
         .start_date
         .unwrap_or(Utc::now().date_naive())

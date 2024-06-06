@@ -91,12 +91,10 @@ impl EventService {
         let filter_opts = QueryFilterOptions {
             find_filter: Some(doc! {
                 "user": user,
-                "start_date": {
-                    "$lte": end_date
-                },
-                "end_date": {
-                    "$gte": start_date
-                }
+                "$and":[
+                    { "start_date": { "$lt": end_date } },
+                    { "end_date": { "$gt": start_date } }
+                ]
             }),
             proj_opts: Some(EventFetchOptions::build_projection()),
             limit,
