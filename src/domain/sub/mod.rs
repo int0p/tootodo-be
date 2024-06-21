@@ -4,3 +4,4 @@ pub mod property;
 pub mod schedule_item;
 pub mod task_block;
 pub mod task_propV;
+pub mod habit_record;

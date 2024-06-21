@@ -36,6 +36,7 @@ services:
       MONGODB_CONTAINER_URL: ${MONGODB_CONTAINER_URL}
     depends_on:
       - postgres
+      - mongo
     build:
       context: .
       dockerfile: Dockerfile
@@ -69,7 +70,6 @@ services:
       PGADMIN_LISTEN_PORT: ${PGADMIN_LISTEN_PORT}
     volumes:
       - pgadmin-data:/var/lib/pgadmin
-    restart: always
     depends_on:
       - postgres
     networks:

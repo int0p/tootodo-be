@@ -30,7 +30,7 @@ pub struct EventModel {
     pub start_date: Option<NaiveDate>,
     pub end_date: Option<NaiveDate>,
 
-    pub due_at: Option<DateTime<Utc>>,
+    pub due_at: Option<DateTime<Local>>,
 
     pub progressRate: f32,
     pub milestone: bool,
@@ -88,18 +88,24 @@ impl EventService {
         end_date: &str,
         user: &Uuid,
     ) -> Result<EventListRes> {
+        let mut find_filter = doc! {
+            "user": user,
+        };
+    
+        if !start_date.is_empty() && !end_date.is_empty() {
+            find_filter.insert("$and", vec![
+                doc! { "start_date": { "$lt": end_date } },
+                doc! { "end_date": { "$gt": start_date } }
+            ]);
+        }
+    
         let filter_opts = QueryFilterOptions {
-            find_filter: Some(doc! {
-                "user": user,
-                "$and":[
-                    { "start_date": { "$lt": end_date } },
-                    { "end_date": { "$gt": start_date } }
-                ]
-            }),
+            find_filter: Some(find_filter),
             proj_opts: Some(EventFetchOptions::build_projection()),
             limit,
             page,
         };
+
         tracing::info!("filter_opts: {:?}", filter_opts.find_filter);
         let events_results = base::fetch::<Self>(db, filter_opts, user)
             .await

@@ -1,8 +1,8 @@
 pub mod req {
-    use chrono::{DateTime, NaiveDate, Utc};
     use mongodb::bson::Document;
     use serde::{Deserialize, Serialize};
     use uuid::Uuid;
+    use chrono::{DateTime, NaiveDate, Utc,Local};
 
     use crate::infra::types::ChatType;
 
@@ -22,7 +22,7 @@ pub mod req {
         #[serde(skip_serializing_if = "Option::is_none")]
         pub end_date: Option<NaiveDate>,
         #[serde(skip_serializing_if = "Option::is_none")]
-        pub due_at: Option<DateTime<Utc>>,
+        pub due_at: Option<DateTime<Local>>,
     }
 
     #[allow(non_snake_case)]
@@ -37,7 +37,7 @@ pub mod req {
         #[serde(skip_serializing_if = "Option::is_none")]
         pub end_date: Option<NaiveDate>,
         #[serde(skip_serializing_if = "Option::is_none")]
-        pub due_at: Option<DateTime<Utc>>,
+        pub due_at: Option<DateTime<Local>>,
         #[serde(skip_serializing_if = "Option::is_none")]
         pub progressRate: Option<f32>,
         #[serde(skip_serializing_if = "Option::is_none")]
@@ -58,7 +58,7 @@ pub mod req {
         #[serde(skip_serializing_if = "Option::is_none")]
         pub end_date: Option<NaiveDate>,
         #[serde(skip_serializing_if = "Option::is_none")]
-        pub due_at: Option<DateTime<Utc>>,
+        pub due_at: Option<DateTime<Local>>,
         pub createdAt: DateTime<Utc>,
         pub updatedAt: DateTime<Utc>,
     }
@@ -92,7 +92,7 @@ pub mod req {
 pub mod res {
     use crate::domain::{event::EventModel, sub::chat::MsgModel};
     use crate::infra::types::ChatType;
-    use chrono::{DateTime, NaiveDate, Utc};
+    use chrono::{DateTime, NaiveDate, Utc,Local};
     use serde::Serialize;
     use uuid::Uuid;
 
@@ -108,7 +108,7 @@ pub mod res {
         pub chat_msgs: Option<Vec<MsgModel>>,
         pub start_date: Option<NaiveDate>,
         pub end_date: Option<NaiveDate>,
-        pub due_at: Option<DateTime<Utc>>,
+        pub due_at: Option<DateTime<Local>>,
         pub createdAt: DateTime<Utc>,
         pub updatedAt: DateTime<Utc>,
     }

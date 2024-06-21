@@ -1,4 +1,4 @@
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Local, Utc};
 use mongodb::bson::doc;
 use mongodb::bson::{self, oid::ObjectId};
 use mongodb::{bson::Document, Database};
@@ -13,6 +13,7 @@ use crate::interface::dto::habit::{
 use crate::{
     domain::error::{Error::*, Result},
     domain::repo::base::{self, MongoRepo},
+    domain::sub::habit_record::HabitRecord,
     infra::db::error::Error as DBError,
     infra::types::StatusType,
 };
@@ -26,6 +27,8 @@ pub struct HabitModel {
     pub user: Uuid,
     pub name: String,
     pub icon: String,
+    pub color: String,
+    pub records: Option<Vec<HabitRecord>>,
     pub status: StatusType,
     #[serde(with = "bson::serde_helpers::chrono_datetime_as_bson_datetime")]
     pub createdAt: DateTime<Utc>,
@@ -69,14 +72,29 @@ impl HabitService {
         db: &Database,
         limit: i64,
         page: i64,
+        start_month: &str,
+        end_month: &str,
         user: &Uuid,
     ) -> Result<HabitListRes> {
+        let mut find_filter = doc! {
+            "user": user,
+        };
+
+        if !start_month.is_empty() && !end_month.is_empty() {
+        //    find_filter.insert("$and", vec![
+         //       doc! { "records": { "$elemMatch": { "start_at": { "$gte": start_month, "$lte": end_month } } } }
+        //    ]);
+        }
+
         let filter_opts = QueryFilterOptions {
-            find_filter: None,
+            find_filter: Some(find_filter),
             proj_opts: None,
             limit,
             page,
         };
+        
+        tracing::info!("filter_opts: {:?}", filter_opts.find_filter);
+
         let habits_result = base::fetch::<Self>(db, filter_opts, user)
             .await
             .expect("habit 응답을 받아오지 못했습니다.");
