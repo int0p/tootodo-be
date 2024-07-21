@@ -1,8 +1,8 @@
 pub mod req {
+    use chrono::{DateTime, Local, NaiveDate, Utc};
     use mongodb::bson::Document;
     use serde::{Deserialize, Serialize};
     use uuid::Uuid;
-    use chrono::{DateTime, NaiveDate, Utc,Local};
 
     use crate::infra::types::ChatType;
 
@@ -17,6 +17,8 @@ pub mod req {
     #[derive(Serialize, Deserialize, Debug)]
     pub struct CreateEventReq {
         pub title: String,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub parent_id: Option<String>,
         #[serde(skip_serializing_if = "Option::is_none")]
         pub start_date: Option<NaiveDate>,
         #[serde(skip_serializing_if = "Option::is_none")]
@@ -39,7 +41,7 @@ pub mod req {
         #[serde(skip_serializing_if = "Option::is_none")]
         pub due_at: Option<DateTime<Local>>,
         #[serde(skip_serializing_if = "Option::is_none")]
-        pub progressRate: Option<f32>,
+        pub progress_rate: Option<u8>,
         #[serde(skip_serializing_if = "Option::is_none")]
         pub chat_type: Option<ChatType>,
     }
@@ -51,7 +53,9 @@ pub mod req {
         pub id: String,
         pub user: Uuid,
         pub title: String,
-        pub progressRate: f32,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub parent_id: Option<String>,
+        pub progress_rate: u8,
         pub milestone: bool,
         #[serde(skip_serializing_if = "Option::is_none")]
         pub start_date: Option<NaiveDate>,
@@ -71,7 +75,8 @@ pub mod req {
                 "_id",
                 "user",
                 "title",
-                "progressRate",
+                "parent_id",
+                "progress_rate",
                 "milestone",
                 "start_date",
                 "end_date",
@@ -92,7 +97,7 @@ pub mod req {
 pub mod res {
     use crate::domain::{event::EventModel, sub::chat::MsgModel};
     use crate::infra::types::ChatType;
-    use chrono::{DateTime, NaiveDate, Utc,Local};
+    use chrono::{DateTime, Local, NaiveDate, Utc};
     use serde::Serialize;
     use uuid::Uuid;
 
@@ -102,7 +107,8 @@ pub mod res {
         pub id: String,
         pub user: Uuid,
         pub title: String,
-        pub progressRate: f32,
+        pub parent_id: Option<String>,
+        pub progress_rate: u8,
         pub milestone: bool,
         pub chat_type: Option<ChatType>,
         pub chat_msgs: Option<Vec<MsgModel>>,
@@ -119,13 +125,14 @@ pub mod res {
                 id: event.id.to_hex(),
                 user: event.user,
                 title: event.title.to_owned(),
+                parent_id: event.parent_id.map(|id| id.to_hex()),
                 start_date: event.start_date.to_owned(),
                 due_at: event.due_at.to_owned(),
                 chat_type: event.chat_type.to_owned(),
                 chat_msgs: event.chat_msgs.to_owned(),
                 createdAt: event.createdAt,
                 updatedAt: event.updatedAt,
-                progressRate: event.progressRate,
+                progress_rate: event.progress_rate,
                 milestone: event.milestone,
                 end_date: event.end_date.to_owned(),
             }

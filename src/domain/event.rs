@@ -32,9 +32,11 @@ pub struct EventModel {
 
     pub due_at: Option<DateTime<Local>>,
 
-    pub progressRate: f32,
+    pub progress_rate: u8,
     pub milestone: bool,
 
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub parent_id: Option<ObjectId>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub chat_type: Option<ChatType>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -70,7 +72,7 @@ impl MongoRepo for EventService {
             "user": user,
             "milestone":false,
             "chat_type": "Event",
-            "progressRate": 0.0,
+            "progress_rate": 0,
             "createdAt": datetime,
             "updatedAt": datetime,
         };
@@ -91,14 +93,17 @@ impl EventService {
         let mut find_filter = doc! {
             "user": user,
         };
-    
+
         if !start_date.is_empty() && !end_date.is_empty() {
-            find_filter.insert("$and", vec![
-                doc! { "start_date": { "$lt": end_date } },
-                doc! { "end_date": { "$gt": start_date } }
-            ]);
+            find_filter.insert(
+                "$and",
+                vec![
+                    doc! { "start_date": { "$lt": end_date } },
+                    doc! { "end_date": { "$gt": start_date } },
+                ],
+            );
         }
-    
+
         let filter_opts = QueryFilterOptions {
             find_filter: Some(find_filter),
             proj_opts: Some(EventFetchOptions::build_projection()),
@@ -123,6 +128,7 @@ impl EventService {
         body: &CreateEventReq,
         user: &Uuid,
     ) -> Result<SingleEventRes> {
+        tracing::info!("body: {:?}", body);
         let event_result = base::create::<Self, CreateEventReq>(
             db,
             body,

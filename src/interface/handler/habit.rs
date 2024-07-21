@@ -1,18 +1,24 @@
 use std::sync::Arc;
 
-use axum::{extract::{Path, Query, State}, http::StatusCode, response::IntoResponse, routing::{get, post}, Extension, Json, Router, middleware};
+use axum::{
+    extract::{Path, Query, State},
+    http::StatusCode,
+    middleware,
+    response::IntoResponse,
+    routing::{get, post},
+    Extension, Json, Router,
+};
 
+use crate::auth::utils::auth::auth_request;
 use crate::{
     auth::utils::auth::JWTAuthMiddleware,
     domain::{
         error::{Error, Result},
         habit::HabitService,
     },
-    infra::types::FilterOptions,
     interface::dto::habit::req::{CreateHabitReq, HabitFilterOptions, UpdateHabitReq},
     AppState,
 };
-use crate::auth::utils::auth::auth_request;
 
 pub fn habit_router(app_state: Arc<AppState>) -> Router {
     Router::new()
@@ -50,15 +56,19 @@ pub async fn habit_list_handler(
     let page = opts.page.unwrap_or(1) as i64;
 
     // 날짜 입력 없으면 모든 habits 가져옴.
-	let start_month = opts
-    .start_month
-    .map(|d| d.to_string()).unwrap_or_default();
+    let start_month = opts.start_month.map(|d| d.to_string()).unwrap_or_default();
     let end_month = opts.end_month.map(|d| d.to_string()).unwrap_or_default();
 
-
-    match HabitService::fetch_habits(&app_state.mongodb.db, limit, page,&start_month,&end_month, &jwtauth.user.id)
-        .await
-        .map_err(Error::from)
+    match HabitService::fetch_habits(
+        &app_state.mongodb.db,
+        limit,
+        page,
+        &start_month,
+        &end_month,
+        &jwtauth.user.id,
+    )
+    .await
+    .map_err(Error::from)
     {
         Ok(res) => Ok(Json(res)),
         Err(e) => Err(e),
