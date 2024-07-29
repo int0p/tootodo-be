@@ -3,12 +3,14 @@ use std::sync::Arc;
 use super::{
     error::{Error, Result},
     model::{LoginUserSchema, RegisterUserSchema, User},
-    utils::auth::{
-        append_cookies_to_headers, auth_first, filter_user_record, generate_token,
-        JWTAuthMiddleware,
+    utils::{
+        auth::{
+            auth_first, filter_user_record, get_access_token_w_refresh, get_refresh_token_details,
+            set_auth_cookies_header, AuthCookiesInfo, JWTAuthMiddleware,
+        },
+        google_oauth::{get_google_user, request_token, QueryCode},
+        token,
     },
-    utils::google_oauth::{get_google_user, request_token, QueryCode},
-    utils::token,
 };
 use crate::{infra::db, AppState};
 use argon2::{password_hash::SaltString, Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
@@ -18,10 +20,7 @@ use axum::{
     response::IntoResponse,
     Extension, Json,
 };
-use axum_extra::extract::{
-    cookie::{Cookie, SameSite},
-    CookieJar,
-};
+use axum_extra::extract::CookieJar;
 use rand_core::OsRng;
 use serde_json::json;
 use tracing::info;
@@ -154,67 +153,24 @@ pub async fn refresh_access_token_handler(
     cookie_jar: CookieJar,
     State(data): State<Arc<AppState>>,
 ) -> Result<impl IntoResponse> {
-    let refresh_token = cookie_jar
-        .get("refresh_token")
-        .map(|cookie| cookie.value().to_string())
-        .ok_or_else(|| Error::RefreshTokenError)?;
+    
+    let refresh_token_details = get_refresh_token_details(&cookie_jar, &data).await?;
+    
+    let access_token = get_access_token_w_refresh(&refresh_token_details, &data).await?;
 
-    let refresh_token_details =
-        match token::verify_jwt_token(data.env.refresh_token_public_key.to_owned(), &refresh_token)
-        {
-            Ok(token_details) => token_details,
-            Err(e) => {
-                return Err(Error::TokenDetailsError(e));
-            }
-        };
+    let mut response =
+        Response::new(json!({"status": "success", "access_token": &access_token}).to_string());
 
-    let user_id_uuid = uuid::Uuid::parse_str(&refresh_token_details.user_id.to_string())
-        .map_err(|_| Error::InvalidToken)?;
+    let cookies_info = AuthCookiesInfo {
+        refresh_token: refresh_token_details
+            .token
+            .as_ref()
+            .ok_or(Error::EmptyToken)?,
+        access_token: &access_token,
+        login: true,
+    };
 
-    let user = sqlx::query_as!(User, "SELECT * FROM users WHERE id = $1", user_id_uuid)
-        .fetch_optional(&data.db)
-        .await
-        .map_err(|e| Error::DB(db::error::Error::FetchError(e)))?;
-
-    let user = user.ok_or_else(|| Error::NoUser)?;
-
-    let access_token_details = generate_token(
-        user.id,
-        data.env.access_token_max_age,
-        data.env.access_token_private_key.to_owned(),
-    )?;
-
-    let access_cookie = Cookie::build((
-        "access_token",
-        access_token_details.token.clone().unwrap_or_default(),
-    ))
-    .path("/")
-    .domain(&data.env.domain)
-    .max_age(time::Duration::minutes(data.env.access_token_max_age * 60))
-    .same_site(SameSite::Lax)
-    .http_only(true);
-
-    let logged_in_cookie = Cookie::build(("logged_in", "true"))
-        .path("/")
-        .domain(&data.env.domain)
-        .max_age(time::Duration::minutes(data.env.access_token_max_age * 60))
-        .same_site(SameSite::Lax)
-        .http_only(false);
-
-    let mut response = Response::new(
-        json!({"status": "success", "access_token": access_token_details.token.unwrap()})
-            .to_string(),
-    );
-    let mut headers = HeaderMap::new();
-    headers.append(
-        header::SET_COOKIE,
-        access_cookie.to_string().parse().unwrap(),
-    );
-    headers.append(
-        header::SET_COOKIE,
-        logged_in_cookie.to_string().parse().unwrap(),
-    );
-
+    let headers = set_auth_cookies_header(&data, cookies_info)?;
     response.headers_mut().extend(headers);
     Ok(response)
 }
@@ -248,36 +204,17 @@ pub async fn logout_handler(
         {
             Ok(token_details) => token_details,
             Err(e) => {
-                return Err(Error::TokenDetailsError(e));
+                return Err(Error::TokenDetails(e));
             }
         };
 
-    let access_cookie = Cookie::build(("access_token", ""))
-        .path("/")
-        .domain(&data.env.domain)
-        .max_age(time::Duration::minutes(-1))
-        .same_site(SameSite::Lax)
-        .http_only(true)
-        .build();
+    let cookies_info = AuthCookiesInfo {
+        refresh_token: &"".to_string(),
+        access_token: &"".to_string(),
+        login: false,
+    };
 
-    let refresh_cookie = Cookie::build(("refresh_token", ""))
-        .path("/")
-        .domain(&data.env.domain)
-        .max_age(time::Duration::minutes(-1))
-        .same_site(SameSite::Lax)
-        .http_only(true)
-        .build();
-
-    let logged_in_cookie = Cookie::build(("logged_in", "false"))
-        .path("/")
-        .domain(&data.env.domain)
-        .max_age(time::Duration::minutes(-1))
-        .same_site(SameSite::Lax)
-        .http_only(false)
-        .build();
-
-    let headers = append_cookies_to_headers(vec![access_cookie, refresh_cookie, logged_in_cookie]);
-
+    let headers = set_auth_cookies_header(&data, cookies_info)?;
     let mut response = Response::new(json!({"status": "success"}).to_string());
     response.headers_mut().extend(headers);
     Ok(response)
@@ -325,13 +262,13 @@ pub async fn google_oauth_handler(
     let token_response = request_token(code.as_str(), &data).await;
 
     if let Err(e) = token_response {
-        return Err(Error::TokenResponseError(format!("{:?}", e)));
+        return Err(Error::TokenResponse(format!("{:?}", e)));
     }
 
     let token_response = token_response.unwrap();
     let google_user = get_google_user(&token_response.access_token, &token_response.id_token).await;
     if let Err(e) = google_user {
-        return Err(Error::UserResponseError(format!("{:?}", e)));
+        return Err(Error::UserResponse(format!("{:?}", e)));
     }
 
     let google_user = google_user.unwrap();

@@ -54,7 +54,7 @@ pub async fn request_token(
             .text()
             .await
             .expect("Error while parsing error message");
-        Err(Error::RetrieveTokenError(error_msg))
+        Err(Error::RetrieveToken(error_msg))
     }
 }
 
@@ -74,6 +74,6 @@ pub async fn get_google_user(
         let user_info = response.json::<GoogleUserResult>().await.unwrap();
         Ok(user_info)
     } else {
-        Err(Error::RetriveUserError)
+        Err(Error::RetriveUser)
     }
 }

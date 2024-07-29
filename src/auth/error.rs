@@ -19,18 +19,19 @@ pub enum Error {
     UserAlreadyExists,
     InvalidLoginInfo,
     WrongUserProvider,
-    GenerateTokenError(jsonwebtoken::errors::Error),
-    RefreshTokenError,
-    TokenDetailsError(jsonwebtoken::errors::Error),
+    GenerateToken(jsonwebtoken::errors::Error),
+    RefreshToken,
+    TokenDetails(jsonwebtoken::errors::Error),
+    EmptyToken,
     InvalidToken,
     NoUser,
     NoAuthCode,
-    RetrieveTokenError(String),
-    RetriveUserError,
-    TokenResponseError(String),
-    UserResponseError(String),
+    RetrieveToken(String),
+    RetriveUser,
+    TokenResponse(String),
+    UserResponse(String),
     NoAccessToken,
-    VerifyTokenError(jsonwebtoken::errors::Error),
+    VerifyToken(jsonwebtoken::errors::Error),
 }
 
 impl IntoResponse for Error {
@@ -39,11 +40,18 @@ impl IntoResponse for Error {
             Error::DB(e) => {
                 return e.into_response();
             }
-            Error::VerifyTokenError(e) => (
+            Error::VerifyToken(e) => (
                 StatusCode::UNAUTHORIZED,
                 ErrorResponse {
                     status: "fail".to_string(),
                     message: format!("Error verifying token: {}", e),
+                },
+            ),
+            Error::EmptyToken => (
+                StatusCode::UNAUTHORIZED,
+                ErrorResponse {
+                    status: "fail".to_string(),
+                    message: "Cannot get token from token_details".to_string(),
                 },
             ),
             Error::NoAccessToken => (
@@ -82,21 +90,21 @@ impl IntoResponse for Error {
                     message: "User registered with a different provider".to_string(),
                 },
             ),
-            Error::GenerateTokenError(e) => (
+            Error::GenerateToken(e) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 ErrorResponse {
                     status: "error".to_string(),
                     message: format!("error generating token: {}", e),
                 },
             ),
-            Error::RefreshTokenError => (
+            Error::RefreshToken => (
                 StatusCode::FORBIDDEN,
                 ErrorResponse {
                     status: "fail".to_string(),
                     message: "could not refresh access token".to_string(),
                 },
             ),
-            Error::TokenDetailsError(e) => (
+            Error::TokenDetails(e) => (
                 StatusCode::UNAUTHORIZED,
                 ErrorResponse {
                     status: "error".to_string(),
@@ -124,14 +132,14 @@ impl IntoResponse for Error {
                     message: "Authorization code not provided!".to_string(),
                 },
             ),
-            Error::RetrieveTokenError(e) => (
+            Error::RetrieveToken(e) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 ErrorResponse {
                     status: "fail".to_string(),
                     message: format!("{:?}", e),
                 },
             ),
-            Error::RetriveUserError => (
+            Error::RetriveUser => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 ErrorResponse {
                     status: "fail".to_string(),
@@ -139,14 +147,14 @@ impl IntoResponse for Error {
                         .to_string(),
                 },
             ),
-            Error::TokenResponseError(e) => (
+            Error::TokenResponse(e) => (
                 StatusCode::BAD_GATEWAY,
                 ErrorResponse {
                     status: "fail".to_string(),
                     message: format!("{:?}", e),
                 },
             ),
-            Error::UserResponseError(e) => (
+            Error::UserResponse(e) => (
                 StatusCode::BAD_GATEWAY,
                 ErrorResponse {
                     status: "fail".to_string(),
