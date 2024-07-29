@@ -153,19 +153,21 @@ pub async fn refresh_access_token_handler(
     cookie_jar: CookieJar,
     State(data): State<Arc<AppState>>,
 ) -> Result<impl IntoResponse> {
-    
+    tracing::info!("CookieJar: {:?}", &cookie_jar);
     let refresh_token_details = get_refresh_token_details(&cookie_jar, &data).await?;
-    
+    tracing::info!("Refresh Handler -> Refresh token: {:?}", &refresh_token_details);
     let access_token = get_access_token_w_refresh(&refresh_token_details, &data).await?;
 
     let mut response =
         Response::new(json!({"status": "success", "access_token": &access_token}).to_string());
 
+    let refresh_token =  refresh_token_details
+        .token
+        .as_ref()
+        .ok_or(Error::EmptyToken)?;
+
     let cookies_info = AuthCookiesInfo {
-        refresh_token: refresh_token_details
-            .token
-            .as_ref()
-            .ok_or(Error::EmptyToken)?,
+        refresh_token,
         access_token: &access_token,
         login: true,
     };
@@ -189,6 +191,7 @@ pub async fn refresh_access_token_handler(
        ("token" = [])
    )
 )]
+
 pub async fn logout_handler(
     cookie_jar: CookieJar,
     Extension(_auth_guard): Extension<JWTAuthMiddleware>,

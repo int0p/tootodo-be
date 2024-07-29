@@ -72,7 +72,7 @@ pub fn verify_jwt_token(
     let token_uuid = Uuid::parse_str(decoded.claims.token_uuid.as_str()).unwrap();
 
     Ok(TokenDetails {
-        token: None,
+        token: Some(token.to_string()),
         token_uuid,
         user_id,
         expires_in: None,

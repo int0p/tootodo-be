@@ -109,8 +109,8 @@ pub async fn auth_request(
     mut req: Request<Body>,
     next: Next,
 ) -> Result<impl IntoResponse, Error> {
-    tracing::info!("Auth Request -> CookieJar:{:?}",&cookie_jar);
-    let access_token = match cookie_jar
+    // tracing::info!("Auth Request -> CookieJar:{:?}", &cookie_jar);
+    let access_token = cookie_jar
         .get("access_token")
         .map(|cookie| cookie.value().to_string())
         .or_else(|| {
@@ -124,37 +124,14 @@ pub async fn auth_request(
                         None
                     }
                 })
-        }) {
-        Some(token) => token,
-        None => {
-            // If no access token, try to refresh
-            tracing::info!("Auth Request -> refreshed");
-            let refresh_token_details = get_refresh_token_details(&cookie_jar, &data).await?;
-
-            match get_access_token_w_refresh(&refresh_token_details, &data).await {
-                Ok(new_token) => {
-                    let access_cookie = Cookie::build(("access_token", new_token.clone()))
-                        .path("/")
-                        .domain(data.env.domain.clone())
-                        .max_age(time::Duration::minutes(data.env.access_token_max_age * 60))
-                        .same_site(SameSite::Lax)
-                        .http_only(true)
-                        .build();
-                    req.headers_mut().insert(header::SET_COOKIE, access_cookie.to_string().parse().unwrap());
-
-                    new_token
-                }
-                Err(e) => return Err(e),
-            }
-        }
-    };
-    
+        });
+    let access_token = access_token.ok_or_else(|| Error::NoAccessToken)?;
     // tracing::info!("Auth_Request -> Access token: {:?}", &access_token);
 
     let access_token_details =
         token::verify_jwt_token(data.env.access_token_public_key.to_owned(), &access_token)
             .map_err(|e| Error::VerifyToken(e))?;
-
+        
     let access_token_uuid = uuid::Uuid::parse_str(&access_token_details.token_uuid.to_string())
         .map_err(|_| Error::InvalidToken)?;
 
@@ -172,7 +149,6 @@ pub async fn auth_request(
         user,
         access_token_uuid,
     });
-    tracing::info!("Auth Request -> new header: {:?}",req.headers().get("access_token"));
 
     Ok(next.run(req).await)
 }
@@ -223,12 +199,13 @@ pub async fn get_refresh_token_details(
     cookie_jar: &CookieJar,
     data: &Arc<AppState>,
 ) -> Result<TokenDetails, Error> {
+    
     let refresh_token = cookie_jar
         .get("refresh_token")
         .map(|cookie| cookie.value().to_string())
         .ok_or(Error::RefreshToken)?;
 
-    // refresh_token 검증
+    // refresh_token 검증 -> detail 반환
     token::verify_jwt_token(data.env.refresh_token_public_key.to_owned(), &refresh_token)
         .map_err(|e| Error::VerifyToken(e))
 }
