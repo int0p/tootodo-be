@@ -6,10 +6,10 @@ use serde::{Deserialize, Serialize};
 use crate::domain::error::{Error::*, Result};
 
 use crate::domain::repo::base_array::{self, MongoArrayRepo};
-use crate::domain::task::TaskModel;
+use crate::domain::note::NoteModel;
 use crate::infra::types::{PropValueType, PropertyType};
-use crate::interface::dto::sub::task_propV::req::*;
-use crate::interface::dto::sub::task_propV::res::*;
+use crate::interface::dto::sub::note_propV::req::*;
+use crate::interface::dto::sub::note_propV::res::*;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct PropValueModel {
@@ -57,7 +57,7 @@ impl PropValueModel {
 pub struct PropValueService;
 
 impl MongoArrayRepo for PropValueService {
-    type CollModel = TaskModel;
+    type CollModel = NoteModel;
     type ElemModel = PropValueModel;
     type UpdateElemReq = UpdatePropValueReq;
     type CreateElemReq = CreatePropValueReq;

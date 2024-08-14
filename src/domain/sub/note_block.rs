@@ -5,10 +5,10 @@ use serde::{Deserialize, Serialize};
 use crate::domain::error::Result;
 
 use crate::domain::repo::base_array::{self, MongoArrayRepo};
-use crate::domain::task::TaskModel;
+use crate::domain::note::NoteModel;
 use crate::infra::types::BlockType;
-use crate::interface::dto::sub::task_block::req::{CreateBlockReq, UpdateBlockReq};
-use crate::interface::dto::sub::task_block::res::*;
+use crate::interface::dto::sub::note_block::req::{CreateBlockReq, UpdateBlockReq};
+use crate::interface::dto::sub::note_block::res::*;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct BlockModel {
@@ -33,7 +33,7 @@ impl BlockModel {
 pub struct BlockService;
 
 impl MongoArrayRepo for BlockService {
-    type CollModel = TaskModel;
+    type CollModel = NoteModel;
     type ElemModel = BlockModel;
     type UpdateElemReq = UpdateBlockReq;
     type CreateElemReq = CreateBlockReq;

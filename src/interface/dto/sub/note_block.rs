@@ -28,7 +28,7 @@ pub mod req {
 }
 
 pub mod res {
-    use crate::domain::sub::task_block::BlockModel;
+    use crate::domain::sub::note_block::BlockModel;
     use crate::infra::types::BlockType;
     use serde::{Deserialize, Serialize};
 

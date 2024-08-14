@@ -13,8 +13,9 @@ use crate::{
     domain::repo::base_array::{self, MongoArrayRepo},
 };
 
-use crate::domain::event::EventModel;
 use crate::domain::task::TaskModel;
+use crate::domain::note::NoteModel;
+
 use crate::infra::types::{ChatType, MsgType};
 
 #[allow(non_snake_case)]
@@ -33,10 +34,13 @@ pub struct MsgModel {
     pub createdAt: DateTime<Utc>,
 }
 
-impl CollInfo for EventModel {
-    const COLL_NAME: &'static str = "events";
+
+impl CollInfo for NoteModel {
+    const COLL_NAME: &'static str = "notes";
     const ARR_NAME: &'static str = "chat_msgs";
 }
+
+
 
 impl CollInfo for TaskModel {
     const COLL_NAME: &'static str = "tasks";

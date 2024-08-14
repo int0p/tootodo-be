@@ -13,7 +13,7 @@ use crate::{
         category::CategoryService,
         error::{Error, Result},
         sub::property::PropertyService,
-        task::TaskService,
+        note::NoteService,
     },
     infra::types::FilterOptions,
     interface::dto::{
@@ -108,9 +108,9 @@ pub async fn update_category_handler(
         .map_err(Error::from)
     {
         Ok(res) => {
-            // Update related tasks
+            // Update related notes
             if let (Some(name), Some(color)) = (&body.name, &body.color) {
-                TaskService::update_tasks_for_category_change(
+                NoteService::update_notes_for_category_change(
                     &app_state.mongodb.db,
                     &id,
                     name,
@@ -197,9 +197,9 @@ pub async fn update_property_handler(
     .map_err(Error::from)
     {
         Ok(res) => {
-            // Update related tasks
+            // Update related notes
             if let (Some(name), Some(prop_type)) = (&update_req.name, &update_req.prop_type) {
-                TaskService::update_tasks_for_property_change(
+                NoteService::update_notes_for_property_change(
                     &app_state.mongodb.db,
                     &category_id,
                     &prop_id,

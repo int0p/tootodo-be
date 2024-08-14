@@ -2,5 +2,5 @@ pub mod chat;
 pub mod daily_item;
 pub mod property;
 pub mod schedule_item;
-pub mod task_block;
-pub mod task_propV;
+pub mod note_block;
+pub mod note_propV;

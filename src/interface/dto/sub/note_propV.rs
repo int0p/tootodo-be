@@ -21,7 +21,7 @@ pub mod req {
     }
 }
 pub mod res {
-    use crate::domain::sub::task_propV::PropValueModel;
+    use crate::domain::sub::note_propV::PropValueModel;
     use crate::infra::types::{PropValueType, PropertyType};
 
     use serde::{Deserialize, Serialize};
