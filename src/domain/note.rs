@@ -316,7 +316,7 @@ impl NoteService {
         };
 
         // Add the new subnote to the original note's subnotes
-        let mut new_page = PageModel::new_page(&original_note);
+        let new_page = PageModel::new_page(&original_note);
         original_note.pages.push(new_page);
 
         // Update the original note in the database

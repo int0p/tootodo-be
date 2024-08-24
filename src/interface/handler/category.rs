@@ -17,7 +17,7 @@ use crate::{
     },
     infra::types::FilterOptions,
     interface::dto::{
-        category::req::{CreateCategoryReq, UpdateCategoryReq},
+        tag_group::req::{CreateCategoryReq, UpdateCategoryReq},
         sub::property::req::{CreatePropertyReq, UpdatePropertyReq},
     },
     AppState,

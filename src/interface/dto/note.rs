@@ -1,12 +1,12 @@
 pub mod req {
     use crate::domain::{
-        note::NoteModel, sub::{note_block::BlockModel, note_page::PageModel, note_propV::PropValueModel}
+        note::NoteModel, sub::{note_page::PageModel, note_propV::PropValueModel}
     };
     use uuid::Uuid;
 
     use crate::infra::types::ChatType;
-    use chrono::{DateTime, NaiveDate, Utc};
-    use mongodb::bson::{self, Document};
+    use chrono::{DateTime, Utc};
+    use mongodb::bson::{Document};
     use serde::{Deserialize, Serialize};
 
     #[derive(Serialize, Deserialize, Debug)]
@@ -94,7 +94,7 @@ pub mod res {
     use crate::infra::types::ChatType;
 
     use chrono::{DateTime, Utc};
-    use serde::{Deserialize, Serialize};
+    use serde::{Serialize};
     use uuid::Uuid;
 
     #[allow(non_snake_case)]

@@ -141,7 +141,7 @@ pub async fn auth_request(
     let user = sqlx::query_as!(User, "SELECT * FROM users WHERE id = $1", user_id_uuid)
         .fetch_optional(&data.db)
         .await
-        .map_err(|e| Error::DB(db::error::Error::FetchError(e)))?;
+        .map_err(|e| Error::DB(db::error::Error::Fetch(e)))?;
 
     let user = user.ok_or_else(|| Error::NoUser)?;
 
@@ -220,7 +220,7 @@ pub async fn get_access_token_w_refresh(
     let user = sqlx::query_as!(User, "SELECT * FROM users WHERE id = $1", user_id_uuid)
         .fetch_optional(&data.db)
         .await
-        .map_err(|e| Error::DB(db::error::Error::FetchError(e)))?;
+        .map_err(|e| Error::DB(db::error::Error::Fetch(e)))?;
 
     let user = user.ok_or_else(|| Error::NoUser)?;
 

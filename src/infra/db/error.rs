@@ -13,8 +13,13 @@ pub enum Error {
     FailToCreatePool(String),
     MigrationError(String),
     #[from]
-    DatabaseError(sqlx::Error),
-    FetchError(sqlx::Error),
+    Sqlx(sqlx::Error),
+    Fetch(sqlx::Error),
+	#[from]
+	SeaQuery(sea_query::error::Error),
+	#[from]
+	ModqlIntoSea(modql::filter::IntoSeaError),
+
     // mongodb
     #[from]
     MongoError(mongodb::error::Error),
@@ -29,11 +34,26 @@ pub enum Error {
     MongoDataError(mongodb::bson::document::ValueAccessError),
     #[from]
     MongoDeserializeBsonError(mongodb::bson::de::Error),
+
 }
 
 impl IntoResponse for Error {
     fn into_response(self) -> Response {
         let (status, error_response) = match self {
+            Error::SeaQuery(e) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                ErrorResponse {
+                    status: "error".to_string(),
+                    message: format!("SeaQuery error: {}", e),
+                },
+            ),
+            Error::ModqlIntoSea(e) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                ErrorResponse {
+                    status: "error".to_string(),
+                    message: format!("ModqlIntoSea error: {}", e),
+                },
+            ),
             Error::MongoGetOidError(e) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 ErrorResponse {
@@ -41,7 +61,7 @@ impl IntoResponse for Error {
                     message: format!("MongoDB error: {}", e),
                 },
             ),
-            Error::DatabaseError(e) => (
+            Error::Sqlx(e) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 ErrorResponse {
                     status: "error".to_string(),
@@ -62,7 +82,7 @@ impl IntoResponse for Error {
                     message: format!("Error executing migrations: {}", e),
                 },
             ),
-            Error::FetchError(e) => (
+            Error::Fetch(e) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 ErrorResponse {
                     status: "fail".to_string(),

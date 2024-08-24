@@ -70,7 +70,7 @@ pub async fn register_user_handler(
             .bind(body.email.to_owned().to_ascii_lowercase())
             .fetch_one(&data.db)
             .await
-            .map_err(|e| Error::DB(db::error::Error::DatabaseError(e)))?;
+            .map_err(|e| Error::DB(db::error::Error::Sqlx(e)))?;
     if let Some(exists) = user_exists {
         if exists {
             return Err(Error::UserAlreadyExists);
@@ -93,7 +93,7 @@ pub async fn register_user_handler(
     )
     .fetch_one(&data.db)
     .await
-    .map_err(|e| Error::DB(db::error::Error::DatabaseError(e)))?;
+    .map_err(|e| Error::DB(db::error::Error::Sqlx(e)))?;
 
     let user_response = serde_json::json!({"status": "success","data": serde_json::json!({
         "user": filter_user_record(&user)
@@ -124,7 +124,7 @@ pub async fn login_user_handler(
     )
     .fetch_optional(&data.db)
     .await
-    .map_err(|e| Error::DB(db::error::Error::DatabaseError(e)))?
+    .map_err(|e| Error::DB(db::error::Error::Sqlx(e)))?
     .ok_or_else(|| Error::InvalidLoginInfo)?;
 
     if user.provider != "local" {
@@ -284,7 +284,7 @@ pub async fn google_oauth_handler(
     )
     .fetch_optional(&data.db)
     .await
-    .map_err(|e| Error::DB(db::error::Error::DatabaseError(e)))?;
+    .map_err(|e| Error::DB(db::error::Error::Sqlx(e)))?;
 
     // insert user if user not exists in db
     let user = match user {
@@ -307,7 +307,7 @@ pub async fn google_oauth_handler(
             .fetch_one(&data.db)
             .await
             .map_err(|e| {
-                Error::DB(db::error::Error::DatabaseError(e))
+                Error::DB(db::error::Error::Sqlx(e))
             })?
         }
     };

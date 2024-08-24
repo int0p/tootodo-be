@@ -1,7 +1,7 @@
 use chrono::Utc;
 use futures::StreamExt;
 use mongodb::bson::{doc, oid::ObjectId};
-use mongodb::bson::{from_document, Bson, Document};
+use mongodb::bson::{Bson, Document};
 use mongodb::options::{FindOptions, IndexOptions};
 use mongodb::{bson, Database, IndexModel};
 use serde::de::DeserializeOwned;
@@ -94,6 +94,7 @@ where
 
         index_doc.insert("user", 1);
 
+        // TODO: unique index 설정(tag group, tag의 경우 동일 이름을 가진 tag group을 생성할 수 없음)
         let index = IndexModel::builder()
             .keys(index_doc)
             .options(IndexOptions::builder().unique(false).build())

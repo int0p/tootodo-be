@@ -27,7 +27,7 @@ pub struct CategoryModel {
     pub id: ObjectId,
     #[serde(with = "bson::serde_helpers::uuid_1_as_binary")]
     pub user: Uuid,
-    pub name: String,
+    pub name: String,                                 
     pub color: String,
     pub status: StatusType,
     pub props: Vec<PropertyModel>,

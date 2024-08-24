@@ -14,7 +14,7 @@ use crate::{
 };
 
 use crate::domain::task::TaskModel;
-use crate::domain::note::NoteModel;
+//use crate::domain::note::NoteModel;
 
 use crate::infra::types::{ChatType, MsgType};
 
@@ -35,10 +35,10 @@ pub struct MsgModel {
 }
 
 
-impl CollInfo for NoteModel {
-    const COLL_NAME: &'static str = "notes";
-    const ARR_NAME: &'static str = "chat_msgs";
-}
+// impl CollInfo for NoteModel {
+//     const COLL_NAME: &'static str = "notes";
+//     const ARR_NAME: &'static str = "chat_msgs";
+// }
 
 
 

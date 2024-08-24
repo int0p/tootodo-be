@@ -1,4 +1,4 @@
-use chrono::{DateTime, Local, Utc};
+use chrono::{DateTime, Utc};
 use mongodb::bson::doc;
 use mongodb::bson::{self, oid::ObjectId};
 use mongodb::{bson::Document, Database};
@@ -76,7 +76,7 @@ impl HabitService {
         end_month: &str,
         user: &Uuid,
     ) -> Result<HabitListRes> {
-        let mut find_filter = doc! {
+        let find_filter = doc! {
             "user": user,
         };
 

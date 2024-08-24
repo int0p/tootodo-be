@@ -3,15 +3,15 @@ use std::sync::Arc;
 use axum::{middleware, Router};
 
 use super::handler::{
-    category::category_router, task::task_router, habit::habit_router, memo::memo_router,
-    note::note_router,
+    task::task_router, habit::habit_router, memo::memo_router,
+    // note::note_router, tag_group::tag_group_router,
 };
 use crate::{auth::utils::auth::auth_request, AppState};
 
 pub fn create_router(app_state: Arc<AppState>) -> Router {
     Router::new()
-        .merge(category_router(app_state.clone()))
-        .merge(note_router(app_state.clone()))
+        // .merge(tag_group_router(app_state.clone()))
+        // .merge(note_router(app_state.clone()))
         .merge(habit_router(app_state.clone()))
         .merge(memo_router(app_state.clone()))
         .merge(task_router(app_state.clone()))
