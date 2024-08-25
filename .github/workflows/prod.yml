@@ -62,10 +62,7 @@ jobs:
           MONGO_INITDB_ROOT_USERNAME: ${{secrets.MONGO_INITDB_ROOT_USERNAME}}
           MONGO_INITDB_ROOT_PASSWORD: ${{secrets.MONGO_INITDB_ROOT_PASSWORD}}
           MONGO_INITDB_DATABASE: ${{secrets.MONGO_INITDB_DATABASE}}
-          MONGO_TEST_DATABASE: ${{secrets.MONGO_TEST_DATABASE}}
           MONGODB_URL: ${{secrets.MONGODB_URL}}
-          MONGODB_TEST_URL: ${{secrets.MONGODB_TEST_URL}}
-          MONGODB_CONTAINER_URL: ${{secrets.MONGODB_CONTAINER_URL}}
         options: "--health-cmd \"mongo --eval 'db.runCommand({ ping: 1 })'\" --health-interval 10s --health-timeout 5s --health-retries 5"
 
     steps:
