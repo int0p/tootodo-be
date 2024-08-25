@@ -53,8 +53,7 @@ jobs:
           POSTGRES_USER: ${{secrets.POSTGRES_USER}}
           POSTGRES_PASSWORD: ${{secrets.POSTGRES_PASSWORD}}
           POSTGRES_DB: ${{secrets.POSTGRES_DB}}
-        options: >-
-          --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5 #magic___^_^___line #magic___^_^___line #magic___^_^___line
+        options: "--health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5 "
       mongodb:
         image: mongo:latest
         ports:
@@ -67,8 +66,7 @@ jobs:
           MONGODB_URL: ${{secrets.MONGODB_URL}}
           MONGODB_TEST_URL: ${{secrets.MONGODB_TEST_URL}}
           MONGODB_CONTAINER_URL: ${{secrets.MONGODB_CONTAINER_URL}}
-        options: >-
-          --health-cmd mongo --health-interval 10s --health-timeout 5s --health-retries 5 #magic___^_^___line
+        options: "--health-cmd mongo --health-interval 10s --health-timeout 5s --health-retries 5 "
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
