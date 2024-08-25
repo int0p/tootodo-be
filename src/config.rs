@@ -8,7 +8,6 @@ pub struct Config {
     pub mongodb_test_url: String,
     pub mongo_initdb_db: String,
     pub mongo_test_db: String,
-    pub mongo_collection_note: String,
 
     pub access_token_private_key: String,
     pub access_token_public_key: String,
@@ -35,7 +34,6 @@ impl Config {
         let mongodb_test_url = get_env_var("MONGODB_TEST_URL");
         let mongo_test_db = get_env_var("MONGO_TEST_DATABASE");
         let mongo_initdb_db = get_env_var("MONGO_INITDB_DATABASE");
-        let mongo_collection_note = get_env_var("MONGODB_NOTE_COLLECTION");
 
         let access_token_private_key = get_env_var("ACCESS_TOKEN_PRIVATE_KEY");
         let access_token_public_key = get_env_var("ACCESS_TOKEN_PUBLIC_KEY");
@@ -62,7 +60,6 @@ impl Config {
             mongodb_test_url,
             mongo_initdb_db,
             mongo_test_db,
-            mongo_collection_note,
             access_token_private_key,
             access_token_public_key,
             refresh_token_private_key,
