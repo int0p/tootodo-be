@@ -43,6 +43,7 @@ jobs:
     env:
       SQLX_OFFLINE: true
       DATABASE_URL: ${{secrets.DATABASE_TEST_URI}}
+      MONGODB_URL: ${{secrets.MONGODB_URL}}
 
     services:
       postgres:
@@ -55,7 +56,7 @@ jobs:
           POSTGRES_DB: ${{secrets.POSTGRES_DB}}
         options: "--health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5 "
       mongodb:
-        image: mongo:6
+        image: mongo
         ports:
         - 27017:27017
         env:
