@@ -55,8 +55,8 @@ impl MongoRepo for TaskService {
     const COLL_NAME: &'static str = "tasks";
     type Model = TaskModel;
     type ModelResponse = TaskRes;
-    fn convert_doc_to_response(task: &TaskModel) -> Result<TaskRes> {
-        Ok(TaskRes::from_model(task))
+    fn convert_doc_to_response(task: &TaskModel) ->TaskRes {
+        TaskRes::from_model(task)
     }
 
     fn create_doc<CreateTaskReq: Serialize>(

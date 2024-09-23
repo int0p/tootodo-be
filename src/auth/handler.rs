@@ -51,7 +51,9 @@ pub async fn health_checker_handler() -> impl IntoResponse {
     post,
     path = "/api/auth/register",
     tag = "Register Account Endpoint",
-    request_body(content = RegisterUserSchema, description = "Credentials to create account", example = json!({"email": "johndoe@example.com","name": "John Doe","password": "password123","passwordConfirm": "password123"})),
+    request_body(content = RegisterUserSchema
+        , description = "Credentials to create account"
+        , example = json!({"email": "johndoe@example.com","name": "John Doe","password": "password123","passwordConfirm": "password123"})),
     responses(
         (status=201, description= "Account created successfully", body= RegisterUserSchema ),
         (status=400, description= "Validation Errors", body= ErrorResponse),
@@ -106,7 +108,9 @@ pub async fn register_user_handler(
     post,
     path = "/api/auth/login",
     tag = "Login Endpoint",
-    request_body(content = LoginUserSchema, description = "Credentials to log in to your account", example = json!({"email": "johndoe@example.com","password": "password123"})),
+    request_body(content = LoginUserSchema
+        , description = "Credentials to log in to your account"
+        , example = json!({"email": "johndoe@example.com","password": "password123"})),
     responses(
         (status=200, description= "Login successfull", body= LoginUserResponse ),
         (status=400, description= "Validation Errors", body= ErrorResponse ),
@@ -155,13 +159,16 @@ pub async fn refresh_access_token_handler(
 ) -> Result<impl IntoResponse> {
     tracing::info!("CookieJar: {:?}", &cookie_jar);
     let refresh_token_details = get_refresh_token_details(&cookie_jar, &data).await?;
-    tracing::info!("Refresh Handler -> Refresh token: {:?}", &refresh_token_details);
+    tracing::info!(
+        "Refresh Handler -> Refresh token: {:?}",
+        &refresh_token_details
+    );
     let access_token = get_access_token_w_refresh(&refresh_token_details, &data).await?;
 
     let mut response =
         Response::new(json!({"status": "success", "access_token": &access_token}).to_string());
 
-    let refresh_token =  refresh_token_details
+    let refresh_token = refresh_token_details
         .token
         .as_ref()
         .ok_or(Error::EmptyToken)?;
@@ -230,7 +237,6 @@ pub async fn logout_handler(
     responses(
         (status = 200, description= "Authenticated User", body = UserResponse),
         (status= 500, description= "Internal Server Error", body = ErrorResponse )
-
     ),
     security(
        ("token" = [])

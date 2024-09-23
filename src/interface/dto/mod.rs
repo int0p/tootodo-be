@@ -5,4 +5,6 @@ pub mod memo;
 pub mod schedule;
 pub mod sub;
 // pub mod note;
-// pub mod tag_group;
+pub mod tag_group;
+pub mod tag;
+pub mod relation;

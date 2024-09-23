@@ -21,7 +21,7 @@ pub trait MongoRepo {
     type Model: Debug;
     type ModelResponse;
     const COLL_NAME: &'static str;
-    fn convert_doc_to_response(doc: &Self::Model) -> Result<Self::ModelResponse>;
+    fn convert_doc_to_response(doc: &Self::Model) -> Self::ModelResponse;
     fn create_doc<Schema: Serialize>(user: &Uuid, body: &Schema) -> Result<Document>;
 }
 
@@ -60,7 +60,7 @@ where
         match result {
             Ok(doc) => {
                 // tracing::info!("doc: {:?}", &doc);
-                let res = S::convert_doc_to_response(&doc)?;
+                let res = S::convert_doc_to_response(&doc);
                 json_result.push(res);
             }
             Err(e) => return Err(DB(DBError::MongoQueryError(e))),
@@ -127,7 +127,7 @@ where
     // 문서 삽입이 잘 되었는지 확인 및 반환.
     let doc = find_mdoc_by_id(&coll, &new_id, doc! {"_id": new_id, "user":user}).await?;
 
-    S::convert_doc_to_response(&doc)
+    Ok(S::convert_doc_to_response(&doc))
 }
 
 pub async fn get<S>(db: &Database, id: &str, user: &Uuid) -> Result<S::ModelResponse>
@@ -143,7 +143,7 @@ where
     // id를 이용해 문서를 찾음.
     let doc = find_mdoc_by_id(&coll, &oid, doc! {"_id": oid, "user":user}).await?;
 
-    S::convert_doc_to_response(&doc)
+    Ok(S::convert_doc_to_response(&doc))
 }
 
 pub async fn update<S, Schema>(
@@ -175,7 +175,7 @@ where
     )
     .await?;
 
-    S::convert_doc_to_response(&doc)
+    Ok(S::convert_doc_to_response(&doc))
 }
 
 pub async fn delete<S: MongoRepo>(db: &Database, id: &str) -> Result<()> {

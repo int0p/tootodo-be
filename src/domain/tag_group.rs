@@ -1,24 +1,20 @@
 use super::repo::base_postgre as base;
-use crate::interface::dto::tag_group::req::FilterTagGroupReq;
 use crate::{
-    domain::error::{Error::*, Result},
-    infra::db::error::Error as DBError,
+    domain::error::Result,
     interface::dto::tag_group::{
         req::{CreateTagGroupReq, UpdateTagGroupReq},
         res::{SingleTagGroupRes, TagGroupData, TagGroupListRes, TagGroupRes},
     },
 };
 use chrono::{DateTime, Utc};
-use modql::field::Fields;
-use modql::filter::ListOptions;
 use serde::{Deserialize, Serialize};
+use sqlb::Fields;
 use sqlx::{FromRow, Pool, Postgres};
 use uuid::Uuid;
 
 #[allow(non_snake_case)]
 #[derive(Serialize, Deserialize, Debug, Clone, Fields, FromRow)]
 pub struct TagGroupModel {
-    #[serde(rename = "_id")]
     pub id: Uuid,
     pub user: Uuid,
     pub name: String,
@@ -27,86 +23,60 @@ pub struct TagGroupModel {
     pub updatedAt: DateTime<Utc>,
 }
 
-#[derive(Clone, Debug)]
 pub struct TagGroupService;
 
 impl base::PostgreRepo for TagGroupService {
-    type ModelResponse = TagGroupRes;
-    const TABLE: &'static str = "tag_group";
+    const TABLE: &'static str = "tag_groups";
+    type Entity = TagGroupModel;
+    type Res = TagGroupRes;
+    fn convert_entity_to_response(entity: &Self::Entity) -> Self::Res {
+        TagGroupRes::from_entity(entity)
+    }
 }
 
 impl TagGroupService {
-    //mongodb에서 tag_group를 가져옴.
-    pub async fn fetch_tag_groups(
-        db: &Pool<Postgres>,
-        list_options: Option<ListOptions>,
-        user: &Uuid,
-    ) -> Result<TagGroupListRes> {
-        let tag_groups_result =
-            base::fetch::<Self, FilterTagGroupReq>(db, None, list_options, user)
-                .await
-                .expect("tag_group 응답을 받아오지 못했습니다.");
-
+    pub async fn fetch_groups(db: &Pool<Postgres>, user: &Uuid) -> Result<TagGroupListRes> {
+        let res = base::fetch::<Self>(db, user).await?;
         Ok(TagGroupListRes {
             status: "success",
-            results: tag_groups_result.len(),
-            tag_groups: tag_groups_result,
+            results: res.len(),
+            tag_groups: res,
         })
     }
 
-    pub async fn create_tag_group(
+    pub async fn create_group(
         db: &Pool<Postgres>,
+        user: &Uuid,
         body: CreateTagGroupReq,
-        user: &Uuid,
     ) -> Result<SingleTagGroupRes> {
-        let tag_group_result = base::create::<Self, CreateTagGroupReq>(db, body, user)
-            .await
-            .expect("tag_group 생성에 실패했습니다.");
+        let res = base::create::<Self, CreateTagGroupReq>(db, user, body).await?;
 
         Ok(SingleTagGroupRes {
             status: "success",
-            data: TagGroupData {
-                tag_group: tag_group_result,
-            },
+            data: TagGroupData { tag_group: res },
         })
     }
 
-    pub async fn get_tag_group(
+    pub async fn get_group(db: &Pool<Postgres>, user: &Uuid, id: Uuid) -> Result<SingleTagGroupRes> {
+        let res = base::get::<Self>(db, user, id).await?;
+        Ok(SingleTagGroupRes {
+            status: "success",
+            data: TagGroupData { tag_group: res },
+        })
+    }
+
+    pub async fn update_group(
         db: &Pool<Postgres>,
-        id: i64,
         user: &Uuid,
-    ) -> Result<SingleTagGroupRes> {
-        let tag_group_result = base::get::<Self>(db, id, user)
-            .await
-            .expect("tag_group를 가져오는데 실패했습니다.");
-
-        Ok(SingleTagGroupRes {
-            status: "success",
-            data: TagGroupData {
-                tag_group: tag_group_result,
-            },
-        })
+        id: Uuid,
+        body: UpdateTagGroupReq,
+    ) -> Result<()> {
+        Ok(base::update::<Self, UpdateTagGroupReq>(db, user, id, body).await?)
     }
 
-    pub async fn update_tag_group(
-        db: &Pool<Postgres>,
-        id: i64,
-        body: UpdateTagGroupReq, //color, name
-        user: &Uuid,
-    ) -> Result<SingleTagGroupRes> {
-        let tag_group_result = base::update::<Self, UpdateTagGroupReq>(db, id, body, user)
-            .await
-            .expect("tag_group 업데이트에 실패했습니다.");
-
-        Ok(SingleTagGroupRes {
-            status: "success",
-            data: TagGroupData {
-                tag_group: tag_group_result,
-            },
-        })
+    pub async fn delete_group(db: &Pool<Postgres>, id: Uuid) -> Result<()> {
+        Ok(base::delete::<Self>(db, id).await?)
     }
 
-    pub async fn delete_tag_group(db: &Pool<Postgres>, id: i64) -> Result<()> {
-        base::delete::<Self>(db, id).await
-    }
+    
 }

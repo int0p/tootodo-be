@@ -39,13 +39,13 @@ impl MongoRepo for MemoService {
     const COLL_NAME: &'static str = "memos";
     type Model = MemoModel;
     type ModelResponse = MemoRes;
-    fn convert_doc_to_response(memo: &MemoModel) -> Result<MemoRes> {
-        Ok(MemoRes::from_model(memo))
+    fn convert_doc_to_response(memo: &MemoModel) -> MemoRes {
+        MemoRes::from_model(memo)
     }
 
     fn create_doc<CreateMemoReq: Serialize>(user: &Uuid, body: &CreateMemoReq) -> Result<Document> {
         let serialized_data =
-            bson::to_bson(body).map_err(|e| DB(DBError::MongoSerializeBsonError(e)))?;
+            bson::to_bson(body).map_err(|e| DBError::from(e))?;
         let document = serialized_data.as_document().unwrap();
         let datetime = Utc::now();
         let mut doc_with_dates = doc! {
@@ -73,9 +73,7 @@ impl MemoService {
             limit,
             page,
         };
-        let memos_result = base::fetch::<Self>(db, filter_opts, user)
-            .await
-            .expect("memo 응답을 받아오지 못했습니다.");
+        let memos_result = base::fetch::<Self>(db, filter_opts, user).await?;
 
         Ok(MemoListRes {
             status: "success",
@@ -97,9 +95,7 @@ impl MemoService {
             limit,
             page,
         };
-        let memos_result = base::fetch::<Self>(db, filter_opts, user)
-            .await
-            .expect("memo 응답을 받아오지 못했습니다.");
+        let memos_result = base::fetch::<Self>(db, filter_opts, user).await?;
 
         Ok(MemoListRes {
             status: "success",
@@ -113,9 +109,8 @@ impl MemoService {
         body: &CreateMemoReq,
         user: &Uuid,
     ) -> Result<SingleMemoRes> {
-        let memo_result = base::create::<Self, CreateMemoReq>(db, body, user, Some(vec!["color"]))
-            .await
-            .expect("memo 생성에 실패했습니다.");
+        let memo_result =
+            base::create::<Self, CreateMemoReq>(db, body, user, Some(vec!["color"])).await?;
 
         Ok(SingleMemoRes {
             status: "success",
@@ -124,9 +119,7 @@ impl MemoService {
     }
 
     pub async fn get_memo(db: &Database, id: &str, user: &Uuid) -> Result<SingleMemoRes> {
-        let memo_result = base::get::<Self>(db, id, user)
-            .await
-            .expect("memo를 가져오는데 실패했습니다.");
+        let memo_result = base::get::<Self>(db, id, user).await?;
 
         Ok(SingleMemoRes {
             status: "success",
@@ -140,9 +133,7 @@ impl MemoService {
         body: &UpdateMemoReq,
         user: &Uuid,
     ) -> Result<SingleMemoRes> {
-        let memo_result = base::update::<Self, UpdateMemoReq>(db, id, body, user)
-            .await
-            .expect("memo 업데이트에 실패했습니다.");
+        let memo_result = base::update::<Self, UpdateMemoReq>(db, id, body, user).await?;
 
         Ok(SingleMemoRes {
             status: "success",

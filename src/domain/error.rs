@@ -6,7 +6,6 @@ use axum::{
 };
 use derive_more::From;
 use utoipa::ToSchema;
-
 pub type Result<T> = core::result::Result<T, Error>;
 
 #[derive(Debug, ToSchema, From)]
@@ -17,6 +16,7 @@ pub enum Error {
     // mongo
     #[from]
     MongoDuplicateError(mongodb::error::Error),
+
     NotFoundError(String),
 
     WrongUserAccess,
@@ -24,34 +24,11 @@ pub enum Error {
     TypedError(String),
     NotRemovedError(String),
 
-    // postgres
-    EntityNotFound {
-		entity: &'static str,
-		id: i64,
-	},
-	ListLimitOverMax {
-		max: i64,
-		actual: i64,
-	},
 }
 
 impl IntoResponse for Error {
     fn into_response(self) -> Response {
-        let (status, error_response) = match self {
-            Error::EntityNotFound { entity, id } => (
-                StatusCode::NOT_FOUND,
-                ErrorResponse {
-                    status: "fail".to_string(),
-                    message: format!("{} with id: {} not found", entity, id),
-                },
-            ),
-            Error::ListLimitOverMax { max, actual }=>(
-                StatusCode::BAD_REQUEST,
-                ErrorResponse {
-                    status: "fail".to_string(),
-                    message: format!("List limit over max: max:{}, actual:{}", max, actual),
-                },
-            ),
+        let (status, error_response) = match self {            
             Error::DB(e) => {
                 return e.into_response();
             }

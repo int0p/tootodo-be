@@ -5,6 +5,7 @@ use axum::{
     Json,
 };
 use derive_more::From;
+use uuid::Uuid;
 
 pub type Result<T> = core::result::Result<T, Error>;
 #[derive(Debug, From)]
@@ -15,10 +16,14 @@ pub enum Error {
     #[from]
     Sqlx(sqlx::Error),
     Fetch(sqlx::Error),
-	#[from]
-	SeaQuery(sea_query::error::Error),
-	#[from]
-	ModqlIntoSea(modql::filter::IntoSeaError),
+    EntityNotFound {
+		entity: &'static str,
+		id: Uuid,
+	},
+	ListLimitOverMax {
+		max: i64,
+		actual: i64,
+	},
 
     // mongodb
     #[from]
@@ -40,18 +45,18 @@ pub enum Error {
 impl IntoResponse for Error {
     fn into_response(self) -> Response {
         let (status, error_response) = match self {
-            Error::SeaQuery(e) => (
-                StatusCode::INTERNAL_SERVER_ERROR,
+            Error::EntityNotFound { entity, id } => (
+                StatusCode::NOT_FOUND,
                 ErrorResponse {
-                    status: "error".to_string(),
-                    message: format!("SeaQuery error: {}", e),
+                    status: "fail".to_string(),
+                    message: format!("{} with id: {} not found", entity, id),
                 },
             ),
-            Error::ModqlIntoSea(e) => (
-                StatusCode::INTERNAL_SERVER_ERROR,
+            Error::ListLimitOverMax { max, actual }=>(
+                StatusCode::BAD_REQUEST,
                 ErrorResponse {
-                    status: "error".to_string(),
-                    message: format!("ModqlIntoSea error: {}", e),
+                    status: "fail".to_string(),
+                    message: format!("List limit over max: max:{}, actual:{}", max, actual),
                 },
             ),
             Error::MongoGetOidError(e) => (

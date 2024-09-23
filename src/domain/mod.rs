@@ -1,4 +1,3 @@
-//pub mod category;
 pub mod daily;
 pub mod error;
 pub mod task;
@@ -8,4 +7,6 @@ pub mod repo;
 pub mod schedule;
 pub mod sub;
 //pub mod note;
-//pub mod tag_group;
+pub mod tag_group;
+pub mod tag;
+pub mod tag_relation;

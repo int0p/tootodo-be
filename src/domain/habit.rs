@@ -43,8 +43,8 @@ impl MongoRepo for HabitService {
     const COLL_NAME: &'static str = "habits";
     type Model = HabitModel;
     type ModelResponse = HabitRes;
-    fn convert_doc_to_response(habit: &HabitModel) -> Result<HabitRes> {
-        Ok(HabitRes::from_model(habit))
+    fn convert_doc_to_response(habit: &HabitModel) -> HabitRes {
+        HabitRes::from_model(habit)
     }
 
     fn create_doc<CreateHabitReq: Serialize>(
