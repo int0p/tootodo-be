@@ -48,6 +48,16 @@ pub mod req {
         pub chat_type: Option<ChatType>,
     }
 
+    #[derive(Serialize, Deserialize, Debug)]
+    pub enum DeleteTaskOptionReq {
+        #[serde(rename = "CONVERT_SUBTASK_TO_TASK")]
+        ConvertSubtaskToTask,
+        #[serde(rename = "DELETE_ALL_SUBTASK")]
+        DeleteAllSubtasks,
+        #[serde(rename = "DELETE_TASK")]
+        DeleteOnlyTask,
+    }
+
     #[allow(non_snake_case)]
     #[derive(Deserialize, Serialize, Debug, Clone)]
     pub struct TaskFetchOptions {
@@ -97,14 +107,14 @@ pub mod req {
 }
 
 pub mod res {
-    use crate::domain::{task::TaskModel, sub::chat::MsgModel};
-    use crate::infra::types::ChatType;
+    use crate::domain::{sub::chat::MsgModel, task::TaskModel};
+    use crate::infra::types::{ChatType, TaskTreeItem};
     use chrono::{DateTime, Local, NaiveDate, Utc};
     use serde::Serialize;
     use uuid::Uuid;
 
     #[allow(non_snake_case)]
-    #[derive(Serialize, Debug)]
+    #[derive(Serialize, Debug, Clone)]
     pub struct TaskRes {
         pub id: String,
         pub user: Uuid,
@@ -139,6 +149,24 @@ pub mod res {
                 end_date: task.end_date.to_owned(),
             }
         }
+
+        pub fn new(task_id: String) -> Self {
+            Self {
+                id: task_id,
+                user: Uuid::new_v4(),
+                title: "".to_string(),
+                parent_id: None,
+                progress_rate: 0,
+                milestone: false,
+                chat_type: None,
+                chat_msgs: None,
+                start_date: None,
+                end_date: None,
+                due_at: None,
+                createdAt: Utc::now(),
+                updatedAt: Utc::now(),
+            }
+        }
     }
 
     #[derive(Serialize, Debug)]
@@ -157,5 +185,12 @@ pub mod res {
         pub status: &'static str,
         pub results: usize,
         pub tasks: Vec<TaskRes>,
+    }
+
+    #[derive(Serialize, Debug)]
+    pub struct TaskListTreeRes {
+        pub status: &'static str,
+        pub results: usize,
+        pub tasks: Vec<TaskTreeItem>,
     }
 }

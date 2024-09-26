@@ -1,6 +1,8 @@
 use mongodb::bson::Document;
 use serde::{Deserialize, Serialize};
 
+use crate::interface::dto::task::res::TaskRes;
+
 // filter
 #[derive(Deserialize, Debug, Default)]
 pub struct FilterOptions {
@@ -80,4 +82,10 @@ pub enum BlockType {
 pub enum PropValueType {
     Multiple(Vec<String>),
     Single(String),
+}
+
+#[derive(Serialize,  Debug, Clone)]
+pub struct TaskTreeItem {
+    pub task: TaskRes,
+    pub subtasks: Vec<TaskTreeItem>, 
 }

@@ -1,5 +1,9 @@
+use std::collections::hash_map::Entry;
+use std::collections::HashMap;
+
 use crate::domain::sub::chat::MsgModel;
 use crate::infra::types::{ChatType, QueryFilterOptions};
+use crate::interface::dto::task::req::DeleteTaskOptionReq;
 
 use chrono::prelude::*;
 use mongodb::bson::doc;
@@ -10,7 +14,7 @@ use uuid::Uuid;
 
 use crate::interface::dto::task::{
     req::{CreateTaskReq, TaskFetchOptions, UpdateTaskReq},
-    res::{TaskData, TaskListRes, TaskRes, SingleTaskRes},
+    res::{SingleTaskRes, TaskData, TaskListRes, TaskRes},
 };
 
 use crate::{
@@ -55,14 +59,11 @@ impl MongoRepo for TaskService {
     const COLL_NAME: &'static str = "tasks";
     type Model = TaskModel;
     type ModelResponse = TaskRes;
-    fn convert_doc_to_response(task: &TaskModel) ->TaskRes {
+    fn convert_doc_to_response(task: &TaskModel) -> TaskRes {
         TaskRes::from_model(task)
     }
 
-    fn create_doc<CreateTaskReq: Serialize>(
-        user: &Uuid,
-        body: &CreateTaskReq,
-    ) -> Result<Document> {
+    fn create_doc<CreateTaskReq: Serialize>(user: &Uuid, body: &CreateTaskReq) -> Result<Document> {
         let ser_data = bson::to_bson(body).map_err(|e| DB(DBError::MongoSerializeBsonError(e)))?;
         let doc = ser_data.as_document().unwrap();
 
@@ -140,9 +141,7 @@ impl TaskService {
 
         Ok(SingleTaskRes {
             status: "success",
-            data: TaskData {
-                task: task_result,
-            },
+            data: TaskData { task: task_result },
         })
     }
 
@@ -153,9 +152,7 @@ impl TaskService {
 
         Ok(SingleTaskRes {
             status: "success",
-            data: TaskData {
-                task: task_result,
-            },
+            data: TaskData { task: task_result },
         })
     }
 
@@ -171,14 +168,66 @@ impl TaskService {
 
         Ok(SingleTaskRes {
             status: "success",
-            data: TaskData {
-                task: task_result,
-            },
+            data: TaskData { task: task_result },
         })
     }
 
-    pub async fn delete_task(db: &Database, id: &str) -> Result<()> {
-        base::delete::<Self>(db, id).await
+    pub async fn delete_task(
+        db: &Database,
+        id: &str,
+        option: DeleteTaskOptionReq,
+        user: &Uuid,
+    ) -> Result<()> {
+        tracing::info!("id {}: {:?}", &id, &option);
+
+        match option {
+            DeleteTaskOptionReq::DeleteOnlyTask => base::delete::<Self>(db, id).await,
+            DeleteTaskOptionReq::DeleteAllSubtasks => {
+                let subtasks = base::fetch::<Self>(
+                    db,
+                    QueryFilterOptions {
+                        find_filter: Some(doc! {
+                            "parent_id": id,
+                            "user": user,
+                        }),
+                        proj_opts: None,
+                        limit: 0,
+                        page: 0,
+                    },
+                    user,
+                )
+                .await
+                .expect("fetch task 실패");
+
+                for subtask in subtasks {
+                    base::delete::<Self>(db, &subtask.id).await?;
+                }
+                base::delete::<Self>(db, id).await
+            }
+            DeleteTaskOptionReq::ConvertSubtaskToTask => {
+                let subtasks = base::fetch::<Self>(
+                    db,
+                    QueryFilterOptions {
+                        find_filter: Some(doc! {
+                            "parent_id": id,
+                            "user": user,
+                        }),
+                        proj_opts: None,
+                        limit: 0,
+                        page: 0,
+                    },
+                    user,
+                )
+                .await
+                .expect("fetch task 실패");
+
+                for subtask in subtasks {
+                    base::update_unset_fields::<Self>(db, &subtask.id, &["parent_id"], user)
+                        .await
+                        .expect("update task 실패");
+                }
+                base::delete::<Self>(db, id).await
+            }
+        }
     }
 }
-

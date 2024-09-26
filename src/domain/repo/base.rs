@@ -46,6 +46,7 @@ where
 
     let find_options = FindOptions::builder()
         .projection(proj_opts)
+        .sort(doc!{"parent_id":1})
         .limit(limit)
         .skip(u64::try_from((page - 1) * limit).unwrap())
         .build();
@@ -177,6 +178,47 @@ where
 
     Ok(S::convert_doc_to_response(&doc))
 }
+
+pub async fn update_unset_fields<S>(
+    db: &Database,
+    id: &str,
+    unset_fields: &[&str],
+    user: &Uuid,
+) -> Result<S::ModelResponse>
+where
+    S: MongoRepo,
+    S::Model: DeserializeOwned + Serialize + Unpin + Send + Sync,
+{
+    let coll = db.collection::<S::Model>(S::COLL_NAME);
+
+    let oid = ObjectId::from_str(id).map_err(DBError::MongoGetOidError)?;
+
+    // $unset 연산자를 위한 Document 생성
+    let mut unset_doc = Document::new();
+    for field in unset_fields {
+        unset_doc.insert(*field, Bson::Int32(1)); // 값은 1로 설정
+    }
+
+    // 업데이트 연산자 생성 ($unset 및 $set)
+    let mut update_operator = Document::new();
+    update_operator.insert("$unset", unset_doc);
+    update_operator.insert("$set", doc! {
+        "updatedAt": Bson::DateTime(Utc::now().into()),
+    });
+
+    // 업데이트 실행
+    let doc = update_doc_ret_model(
+        &coll,
+        &oid,
+        None,
+        update_operator,
+        doc! {"_id": oid, "user": user},
+    )
+    .await?;
+
+    Ok(S::convert_doc_to_response(&doc))
+}
+
 
 pub async fn delete<S: MongoRepo>(db: &Database, id: &str) -> Result<()> {
     let doc_coll = db.collection::<Document>(S::COLL_NAME);
